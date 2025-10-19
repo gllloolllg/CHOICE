@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&display=swap" rel="stylesheet">
+<title>Color roulette</title>
+<style>
+  html,body {
+    width: 100%; margin: 0; 
+    margin:0;
+    background-color: #000;
+  }
+  .colors {
+    margin: 40px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .color-btn {
+    aspect-ratio: 1 / 1;
+    appearance: none;
+    border: 2px solid #0003;
+    border-radius: 8px;
+    padding: 8px;
+    color: #000;
+    background: #eee;
+    display: grid;
+    place-items: center;
+    user-select: none;
+  }
+  .color-btn[aria-pressed="true"] {
+    outline: 6px solid rgb(255, 255, 255);
+    filter: saturate(120%);
+  }
+  .chip {
+    width: 1.25em; height: 1.25em; border-radius: 3px; border: 1px solid #0003;
+    display: inline-block; vertical-align: middle; margin-right: .4em;
+  }
+
+  button.run {
+    display: block;
+    width: 60%;
+    font-size: 50px;
+    font-family: "Darumadrop One", sans-serif;
+    margin: 40px auto 0;
+    padding-bottom: .3em;
+    border: none;
+    border-radius: 8px;
+    background: #d42a2a;
+    color: white;
+    cursor: pointer;
+  }
+  button.run:disabled { opacity: .3; cursor: not-allowed; }
+
+  .stage { display: none; place-items: center; min-height: 0; }
+  .board { width: min(100vmin, 900px);
+    height: min(100vmin, 900px);
+    position: relative; 
+  }
+
+  .pointer {
+    position: absolute;
+    top: 90px;
+    left: 46.25%;
+    transform: translateX(-0%);
+    width: 0; height: 0;
+    border-left: 15px solid transparent; border-right: 15px solid transparent;
+    border-top: 24px solid #d12222;
+  }
+  svg { 
+    margin:100px auto 0;
+    width:98%; height:98%; display: block; }
+  #wheel {
+    transform-origin: 50% 50%;
+    /* ← ここでは transition を指定しない（動かす時だけ付ける） */
+  }
+
+  .sr-only {
+    position: absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+  
+  .reindex {
+    text-align: right;
+    padding: 10px;
+    }
+
+  .index-btn {
+    text-decoration: none;
+    font-family: "Darumadrop One", sans-serif;
+    font-size: 16px;
+    text-align: center;
+    display: inline-block;
+    color:#fdfdfd;
+    background: #555b97;
+    border:none;
+    border-radius:8px;
+    padding:3px 10px 5px; 
+  }
+</style>
+</head>
+<body>
+  <div class="reindex">
+    <a href="index.html" class="index-btn">CHANGE</a>
+  </div>
+
+  <section aria-labelledby="title">
+    <div class="colors" id="colorGrid" role="group" aria-label="色を選択（任意数）"></div>
+  </section>
+
+    <button class="run" id="runBtn" type="button" disabled>SPIN!</button>
+
+  <div class="stage">
+     <div class="board" aria-live="polite">
+      <div class="pointer" aria-hidden="true"></div>
+      <svg viewBox="0 0 100 100" aria-label="ルーレット">
+        <g id="wheel"></g>
+        <circle cx="50" cy="50" r="3" fill="#111"></circle>
+      </svg>
+    </div>
+  </div>
+
+
+
+<script>
+(function(){
+  const PALETTE = [
+    {name:'Red',     hex:'#f06359'},
+    {name:'Orange',  hex:'#f09f59'},
+    {name:'Yellow',  hex:'#fce365'},
+    {name:'Lime',    hex:'#acfc65'},
+    {name:'Green',   hex:'#1ca35b'},
+    {name:'Teal',    hex:'#65dcfc'},
+    {name:'Cyan',    hex:'#00acc1'},
+    {name:'Blue',    hex:'#6592fc'},
+    {name:'Indigo',  hex:'#3949ab'},
+    {name:'Violet',  hex:'#8e24aa'},
+    {name:'White',    hex:'#ddd'},
+    {name:'Black',    hex:'#444'},
+  ];
+
+  const grid = document.getElementById('colorGrid');
+  const runBtn = document.getElementById('runBtn');
+  const wheel = document.getElementById('wheel');
+
+  // 状態：現在の正規化角度（0..359）
+  let currentNormalizedDeg = 0;
+
+  // 12色ボタンを描画
+ // 12色ボタンを描画（背景色のみ）
+PALETTE.forEach((c, i) => {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'color-btn';
+  btn.setAttribute('aria-pressed', 'false');
+  btn.dataset.index = String(i);
+
+  // 背景を色にする
+  btn.style.backgroundColor = c.hex;
+  btn.title = c.name; // ツールチップで名前表示（視覚名不要なら削除可）
+
+  btn.addEventListener('click', () => {
+    const pressed = btn.getAttribute('aria-pressed') === 'true';
+    btn.setAttribute('aria-pressed', String(!pressed));
+    updateState();
+  });
+
+  grid.appendChild(btn);
+});
+
+
+  function getSelected() {
+    const indices = [];
+    grid.querySelectorAll('.color-btn[aria-pressed="true"]').forEach(el => {
+      indices.push(Number(el.dataset.index));
+    });
+    return indices.map(i => PALETTE[i]);
+  }
+
+  function updateState() {
+    const sel = getSelected();
+    runBtn.disabled = sel.length < 2;
+    drawWheel(sel);
+  }
+
+  function drawWheel(selected) {
+    wheel.innerHTML = '';
+    if (selected.length === 0) {
+      const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      circle.setAttribute('cx','50'); circle.setAttribute('cy','50');
+      circle.setAttribute('r','48');  circle.setAttribute('fill','#eee');
+      circle.setAttribute('stroke','#ccc'); circle.setAttribute('stroke-width','0.5');
+      wheel.appendChild(circle);
+      setRotation(0, /*animate=*/false);
+      return;
+    }
+    const n = selected.length;
+    const angle = 360 / n;
+    const r = 48, cx = 50, cy = 50;
+
+    for (let i=0;i<n;i++){
+      const start = -90 + i*angle;
+      const end   = start + angle;
+      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d', sectorPath(cx, cy, r, start, end));
+      path.setAttribute('fill', selected[i].hex);
+      path.setAttribute('stroke', '#fff');
+      path.setAttribute('stroke-width', '0.6');
+      wheel.appendChild(path);
+    }
+    const rim = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    rim.setAttribute('cx','50'); rim.setAttribute('cy','50'); rim.setAttribute('r','49');
+    rim.setAttribute('fill','none'); rim.setAttribute('stroke','#111'); rim.setAttribute('stroke-width','0.8');
+    wheel.appendChild(rim);
+
+    // 描き直したときは、現在角度を反映（アニメなし）
+    setRotation(currentNormalizedDeg, /*animate=*/false);
+  }
+
+  function sectorPath(cx, cy, r, startDeg, endDeg) {
+    const rad = d => (Math.PI/180)*d;
+    const sx = cx + r * Math.cos(rad(startDeg));
+    const sy = cy + r * Math.sin(rad(startDeg));
+    const ex = cx + r * Math.cos(rad(endDeg));
+    const ey = cy + r * Math.sin(rad(endDeg));
+    const large = (endDeg - startDeg) > 180 ? 1 : 0;
+    return `M ${cx} ${cy} L ${sx} ${sy} A ${r} ${r} 0 ${large} 1 ${ex} ${ey} Z`;
+  }
+
+  // 角度適用（animate=false のときは transition 無効で確実に瞬時反映）
+  // 置き換え
+function setRotation(deg, animate) {
+  if (!animate) {
+    wheel.style.transition = 'none';
+    void wheel.offsetWidth;                 // reflow
+    wheel.style.transform = `rotate(${deg}deg)`;
+  } else {
+    wheel.style.transition = 'transform 8s cubic-bezier(.17,.67,.17,1)';
+    void wheel.offsetWidth;                 // reflow
+    wheel.style.transform = `rotate(${deg}deg)`;
+  }
+}
+
+
+
+runBtn.addEventListener('click', () => {
+  const selected = getSelected();
+  if (selected.length === 0) return;
+
+  // 表示切替（先にルーレット領域を見える状態に）
+  document.querySelector('.colors').style.display = 'none';
+  document.querySelector('.run').style.display = 'none';
+  const stage = document.querySelector('.stage');
+  stage.style.display = 'grid';
+
+  // ルーレットを選択色で再描画（念のため）
+  drawWheel(selected);
+
+  const n = selected.length;
+  const winnerIndex = Math.floor(Math.random() * n);
+  const angle = 360 / n;
+  const baseSpins = 10;
+  const targetDeg = baseSpins * 360 - ((winnerIndex + 0.5) * angle);
+
+  // 1) 現在角度を“瞬時に”反映（表示直後の初期化）
+  setRotation(currentNormalizedDeg, /*animate=*/false);
+
+  // 2) 次フレームで回転開始（可視状態が確定してから）
+  requestAnimationFrame(() => {
+    setRotation(targetDeg, /*animate=*/true);
+  });
+
+  const onEnd = () => {
+    wheel.removeEventListener('transitionend', onEnd);
+    const w = selected[winnerIndex];
+   
+
+    // 正規化して保持（次回の初期角度）
+    const normalized = ((targetDeg % 360) + 360) % 360;
+    currentNormalizedDeg = normalized;
+    setRotation(normalized, /*animate=*/false);
+  };
+  wheel.addEventListener('transitionend', onEnd, { once:true });
+});
+
+
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !runBtn.disabled) {
+      e.preventDefault();
+      runBtn.click();
+    }
+  });
+
+  // 初期描画
+  drawWheel([]);
+})();
+</script>
+</body>
+</html>
