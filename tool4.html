@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<title>tresure</title>
+<style>
+  /* 画面内に表示される文字は数字ボタンのみ */
+  html,body{
+        margin:0;
+    }
+  body{
+        padding: 20px;
+        background: black;
+        display:grid; place-items:center;
+        }
+
+  /* 数字ボタン（2〜12のみ可視） */
+  .wrap{
+    margin-top: 200px;
+  }
+    .nums{ 
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap:48px;
+        justify-content:center;
+        margin: 0 auto;
+    }
+  .nums[hidden]{ display:none !important; }
+  .nums button{
+    background-color: black;
+    color:white;
+    padding:20px 20px 28px;
+    border: 14px solid white;
+    border-radius: 0;
+    font-size:100px;
+    line-height:1;
+    font-family: "Silkscreen", sans-serif;
+    font-weight: 400;
+  }
+  .nums button:active{ transform:translateY(1px) scale(.85) }
+
+  /* 宝箱グリッド */
+    .grid{ 
+        display:grid; gap:40px;
+        grid-template-columns:repeat(3, minmax(200px,1fr));
+        justify-items: center;
+        align-items: center;
+        place-content: center;   /* グリッド全体を上下左右中央に配置 */
+        min-height: 60vh;       /* 画面全体の高さを確保 */
+    }
+  .grid[hidden]{ display:none !important; }
+  .cell{
+        width:  max-content;
+        height: max-content;
+        padding: 0;
+        display:grid;
+        place-items:center;
+        background:black;
+        border: none;
+  }
+  .cell[aria-disabled="true"]{ opacity:.7; cursor:not-allowed }
+  .cell img{ 
+        width:200px;
+        height:200px; object-fit:contain; image-rendering:auto; 
+        -webkit-user-drag: none; /* 画像ドラッグ禁止（Safari対応） */
+        user-select: none;        /* 選択状態防止 */
+        -webkit-tap-highlight-color: transparent; /* モバイルでの青ハイライト除去 */
+    }
+
+  /* モーダル（画像のみ表示） */
+  .modal{
+    position:fixed; inset:0; display:none; place-items:center;
+    background: rgba(0,0,0,.55); z-index:50;
+  }
+  .modal[open]{ display:grid }
+  .modal img{
+    width:80%; height:auto;
+    -webkit-user-drag: none; /* 画像ドラッグ禁止（Safari対応） */
+    user-select: none;        /* 選択状態防止 */
+    -webkit-tap-highlight-color: transparent; /* モバイルでの青ハイライト除去 */
+  }
+
+  /* 追加：画面いっぱいに1秒表示する演出 */
+    .reshuffle{
+        position: fixed;
+        width: 100%;
+        display: none;
+        place-items: center;
+        background: #000;     /* フェード用の黒背景 */
+        z-index: 60;          /* モーダル(50)より上 */
+    }
+    .reshuffle[open]{ display: grid; }
+    .reshuffle img{
+        width: 100%;
+        margin-top: 50%;
+        object-fit: cover;
+        -webkit-user-drag: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+
+  /* スクリーンリーダ向けにだけラベルを残す（画面には表示しない） */
+  .sr-only{
+    position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+</style>
+</head>
+<body>
+    <div class="wrap">
+        <!-- 可視文字はこの数字ボタンのみ -->
+        <div class="nums" id="numButtons" aria-label="個数を選択">
+        <!-- JSで2〜12を生成 -->
+        </div>
+
+        <div class="grid" id="grid" role="list" hidden></div>
+    </div>
+
+  <!-- モーダル：画像のみ -->
+    <div class="modal" id="modal" aria-modal="true" role="dialog" aria-labelledby="mTitle">
+        <span id="mTitle" class="sr-only">宝箱</span>
+        <img id="modalImg" alt="" />
+    </div>
+
+    <!-- 追加：リシャッフル演出用オーバーレイ -->
+    <div class="reshuffle" id="reshuffle">
+        <img src="tool4/reshuffle.png" alt="">
+    </div>
+
+<script>
+    /* ============== 設定（画像パス） ============== */
+    const PATH = {
+    close: 'tool4/close.png',
+    open:  'tool4/open.png',
+    atari: 'tool4/atari.png',
+    reshuffle: 'tool4/reshuffle.png'
+    };
+
+    /* ============== 状態 ============== */
+    let state = {
+    total: 0,
+    winner: -1,
+    };
+
+    let currentSelection = null; // { index, btn, imgEl }
+    let autoCloseTimer = null;
+    const $nums  = document.getElementById('numButtons');
+    const $grid  = document.getElementById('grid');
+    const $modal = document.getElementById('modal');
+    const $mimg  = document.getElementById('modalImg');
+    const atarisound = new Audio("tool4/atari.mp3")
+    atarisound.volume=0.5;
+    const hazuresound = new Audio("tool4/hazure.mp3");
+    hazuresound.volume=0.5;
+
+    /* ============== 初期化：2〜12ボタン ============== */
+    (function initNumberButtons(){
+    for(let n=2;n<=12;n++){
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = String(n); // 画面に出るのはこの数字のみ
+        b.setAttribute('aria-label', `${n}（箱は ${n+1} 個）`);
+        b.addEventListener('click', ()=> startRound(n));
+        $nums.appendChild(b);
+    }
+    })();
+
+    /* ============== ラウンド開始 ============== */
+    function startRound(chosen){
+    $nums.hidden = true;
+
+    const total = chosen + 1;
+    state.total = total;
+    state.winner = Math.floor(Math.random() * total);
+
+    $grid.innerHTML = '';
+    for(let i=0;i<total;i++){
+        const btn = document.createElement('button');
+        btn.className = 'cell';
+        btn.role = 'listitem';
+        btn.setAttribute('aria-label', `宝箱 ${i+1}`);
+        btn.dataset.index = String(i);
+
+        const img = document.createElement('img');
+        img.src = PATH.close;
+        img.alt = '';
+        btn.appendChild(img);
+
+        btn.addEventListener('click', ()=> onChestClick(i, btn, img));
+        $grid.appendChild(btn);
+    }
+    $grid.hidden = false;
+    }
+
+    /* ============== 1) グリッドの宝箱クリック → モーダルで閉箱を表示 ============== */
+    function onChestClick(index, btn, imgEl){
+    if(btn.getAttribute('aria-disabled') === 'true') return;
+    currentSelection = { index, btn, imgEl }; // どの箱か記憶
+    openModal(PATH.close);                    // 表示のみ（判定しない）
+    }
+
+    /* ============== 2) モーダル画像クリック → 即時開封（見た目優先） ============== */
+    $mimg.addEventListener('click', ()=>{
+    if(!$modal.hasAttribute('open')) return;
+
+    // まだ閉じている画像を表示している場合 → ここで判定して即座に見た目を変える
+    if(endsWithFile($mimg.src, 'close.png')){
+        if(!currentSelection) return;
+        const { index, btn, imgEl } = currentSelection;
+        const isWin = index === state.winner;
+
+        if(isWin){
+        $mimg.src = PATH.atari;           // 当たりはモーダルをATARIに
+        btn.setAttribute('aria-disabled','true');
+        atarisound.play();
+        }else{
+        hazuresound.play();
+        $mimg.src = PATH.open;            // はずれはモーダルをOPENに
+        imgEl.src = PATH.open;            // 下の同じ箱もOPENに
+        btn.setAttribute('aria-disabled','true');
+        
+        if (autoCloseTimer) {
+            clearTimeout(autoCloseTimer);
+            autoCloseTimer = null;
+        }
+        autoCloseTimer = setTimeout(() => {
+            autoCloseTimer = null;
+            closeModal();
+        }, 2000);
+                }
+        return; // ここでは閉じない（はずれは次のクリックで閉じる）
+    }
+
+    // 既に開封済みのとき：
+    // open.png → 押したらモーダルを閉じる
+    if(endsWithFile($mimg.src, 'open.png')){
+        closeModal();
+        return;
+    }
+    // atari.png → 押しても閉じない（仕様）
+    });
+
+    /* ============== モーダル開閉 ============== */
+    function openModal(src){
+        if (autoCloseTimer) { clearTimeout(autoCloseTimer); autoCloseTimer = null; }
+        $mimg.src = src;
+        $modal.setAttribute('open','');
+    }
+    function closeModal(){
+         if (autoCloseTimer) { clearTimeout(autoCloseTimer); autoCloseTimer = null; }
+        $modal.removeAttribute('open');
+        currentSelection = null;
+        const unopened = Array.from(document.querySelectorAll('.cell'))
+        .filter(c => c.getAttribute('aria-disabled') !== 'true');
+
+        if (unopened.length === 1) {
+            showReshuffleThenReset();
+        }
+        currentSelection = null;
+    }
+
+    // 追加：演出→全箱リセット→当たりを再抽選
+    function showReshuffleThenReset(){
+        const overlay = document.getElementById('reshuffle');
+        overlay.setAttribute('open','');
+
+        setTimeout(()=>{
+            overlay.removeAttribute('open');
+            resetChests();
+        }, 1000); // 1秒表示
+    }
+
+    function resetChests(){
+        // 全箱を閉箱に戻し、押下可能に
+        document.querySelectorAll('.cell').forEach(cell=>{
+            const img = cell.querySelector('img');
+            if (img) img.src = PATH.close;
+            cell.removeAttribute('aria-disabled');
+        });
+        // 当たりを再抽選
+        state.winner = Math.floor(Math.random() * state.total);
+        state.winnerOpened = false;
+    }
+
+
+    /* 便利関数：画像URL末尾のファイル名判定 */
+    function endsWithFile(url, name){
+    // ブラウザは絶対URLに解決するので部分一致も考慮
+    return url.endsWith('/'+name) || url.endsWith(name) || url.includes(name);
+    }
+</script>
+</body>
+</html>

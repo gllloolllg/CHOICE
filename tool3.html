@@ -174,11 +174,14 @@
   const overlay = document.getElementById('overlay');
   const textEl = document.getElementById('oracleText');
   const hint = document.getElementById('hint');
+  const koto = new Audio("tool3/koto.mp3");
+  koto.volume = 0.5;
 
   // Enter/Spaceでも開けるようbuttonを活用
   btn.addEventListener('click', openScroll, { once: true });
 
   function openScroll(){
+    koto.play();
     // 要素を都度取得し、なければ生成してから使う
     const overlay = document.getElementById('overlay');
     let textEl = document.getElementById('oracleText');
