@@ -77,12 +77,49 @@
     background: rgba(0,0,0,.55); z-index:50;
   }
   .modal[open]{ display:grid }
-  .modal img{
+#modalImg{
     width:80%; height:auto;
     -webkit-user-drag: none; /* 画像ドラッグ禁止（Safari対応） */
     user-select: none;        /* 選択状態防止 */
     -webkit-tap-highlight-color: transparent; /* モバイルでの青ハイライト除去 */
   }
+
+  /* モーダル内レイヤー */
+.modal-viewport{
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+    /* 鍵の初期状態＆アニメ */
+    .key{
+        position: absolute;
+        left: 50%;
+        transform: translate(-50%, -120px); /* 上からスタート */
+        top: 0;
+        width: 200px;           /* 鍵の大きさは適宜調整 */
+        height: auto;
+        opacity: 0;
+        pointer-events: none;   /* クリック無効 */
+        -webkit-user-drag: none;
+        user-select: none;
+
+    }
+    .key.show{
+        opacity: 1;
+        animation: keydrop 1.5s linear forwards;
+        animation-delay: 1s;
+    }
+    @keyframes keydrop{
+        /* 開始（アニメ開始時点＝モーダル後0.5秒） */
+        0%   { transform: translate(-50%, -80px); opacity: 1; }
+
+        /* 1秒経過地点（全体の約66.666%）: ほぼ降り切るが透明のまま */
+        80% { transform: translate(-50%, 120px); opacity: 1; }
+
+        /* さらに0.5秒かけて下に降りながら不透明へ */
+        100% { transform: translate(-50%, 150px); opacity: 0; }
+    }
 
   /* 追加：画面いっぱいに1秒表示する演出 */
     .reshuffle{
@@ -124,7 +161,10 @@
   <!-- モーダル：画像のみ -->
     <div class="modal" id="modal" aria-modal="true" role="dialog" aria-labelledby="mTitle">
         <span id="mTitle" class="sr-only">宝箱</span>
-        <img id="modalImg" alt="" />
+        <div class="modal-viewport">
+            <img id="modalImg" alt="" />
+            <img id="keyImg" class="key" src="tool4/key.png" alt="" aria-hidden="true" />
+        </div>
     </div>
 
     <!-- 追加：リシャッフル演出用オーバーレイ -->
@@ -138,7 +178,8 @@
     close: 'tool4/close.png',
     open:  'tool4/open.png',
     atari: 'tool4/atari.png',
-    reshuffle: 'tool4/reshuffle.png'
+    reshuffle: 'tool4/reshuffle.png',
+    key:'tool4/key.png'
     };
 
     /* ============== 状態 ============== */
@@ -148,15 +189,19 @@
     };
 
     let currentSelection = null; // { index, btn, imgEl }
-    let autoCloseTimer = null;
+    let  = null;
     const $nums  = document.getElementById('numButtons');
     const $grid  = document.getElementById('grid');
     const $modal = document.getElementById('modal');
     const $mimg  = document.getElementById('modalImg');
+    const $key = document.getElementById('keyImg');
     const atarisound = new Audio("tool4/atari.mp3")
     atarisound.volume=0.5;
     const hazuresound = new Audio("tool4/hazure.mp3");
     hazuresound.volume=0.5;
+    let autoCloseTimer = null;  // 既に導入済みならそのまま利用
+    let keyTimer = null;        // ← 追加：鍵アニメ管理
+
 
     /* ============== 初期化：2〜12ボタン ============== */
     (function initNumberButtons(){
@@ -199,69 +244,101 @@
 
     /* ============== 1) グリッドの宝箱クリック → モーダルで閉箱を表示 ============== */
     function onChestClick(index, btn, imgEl){
-    if(btn.getAttribute('aria-disabled') === 'true') return;
-    currentSelection = { index, btn, imgEl }; // どの箱か記憶
-    openModal(PATH.close);                    // 表示のみ（判定しない）
+        if(btn.getAttribute('aria-disabled') === 'true') return;
+        currentSelection = { index, btn, imgEl }; // どの箱か記憶
+        openModal(PATH.close);                    // 表示のみ（判定しない）
+        startKeySequence();
     }
+
+   // 置換：startKeySequence（鍵を表示→アニメ終了で開封）
+    function startKeySequence(){
+        // 既存タイマーの停止（念のため）
+        if (autoCloseTimer) { clearTimeout(autoCloseTimer); autoCloseTimer = null; }
+        if (keyTimer) { clearTimeout(keyTimer); keyTimer = null; }
+
+        if ($key){
+            // クラス再付与でアニメをリスタート
+            $key.classList.remove('show');
+            void $key.offsetWidth; // reflow
+            $key.classList.add('show');
+
+            // 鍵アニメ終了後に開封
+            const onEnd = ()=>{
+            $key.removeEventListener('animationend', onEnd);
+
+            if(!currentSelection) return;
+            const { index, btn, imgEl } = currentSelection;
+            const isWin = index === state.winner;
+
+            if (isWin){
+                $mimg.src = PATH.atari;
+                btn.setAttribute('aria-disabled','true');
+                // 当たりは自動クローズ無し（仕様どおり）
+            }else{
+                $mimg.src = PATH.open;
+                imgEl.src = PATH.open;
+                btn.setAttribute('aria-disabled','true');
+
+                // 2秒後に自動で閉じる（既存仕様）
+                if (autoCloseTimer) { clearTimeout(autoCloseTimer); autoCloseTimer = null; }
+                autoCloseTimer = setTimeout(()=>{
+                autoCloseTimer = null;
+                closeModal();
+                }, 2000);
+            }
+            };
+            $key.addEventListener('animationend', onEnd, { once:true });
+    }
+    }
+
+
 
     /* ============== 2) モーダル画像クリック → 即時開封（見た目優先） ============== */
     $mimg.addEventListener('click', ()=>{
-    if(!$modal.hasAttribute('open')) return;
+        if(!$modal.hasAttribute('open')) return;
 
-    // まだ閉じている画像を表示している場合 → ここで判定して即座に見た目を変える
-    if(endsWithFile($mimg.src, 'close.png')){
-        if(!currentSelection) return;
-        const { index, btn, imgEl } = currentSelection;
-        const isWin = index === state.winner;
+        // 閉箱（close.png）は何もしない（クリック不要）
+        if (endsWithFile($mimg.src, 'close.png')) return;
 
-        if(isWin){
-        $mimg.src = PATH.atari;           // 当たりはモーダルをATARIに
-        btn.setAttribute('aria-disabled','true');
-        atarisound.play();
-        }else{
-        hazuresound.play();
-        $mimg.src = PATH.open;            // はずれはモーダルをOPENに
-        imgEl.src = PATH.open;            // 下の同じ箱もOPENに
-        btn.setAttribute('aria-disabled','true');
-        
-        if (autoCloseTimer) {
-            clearTimeout(autoCloseTimer);
-            autoCloseTimer = null;
-        }
-        autoCloseTimer = setTimeout(() => {
-            autoCloseTimer = null;
+        // はずれ(open.png) → クリックで即閉じる
+        if (endsWithFile($mimg.src, 'open.png')) {
             closeModal();
-        }, 2000);
-                }
-        return; // ここでは閉じない（はずれは次のクリックで閉じる）
-    }
-
-    // 既に開封済みのとき：
-    // open.png → 押したらモーダルを閉じる
-    if(endsWithFile($mimg.src, 'open.png')){
-        closeModal();
-        return;
-    }
-    // atari.png → 押しても閉じない（仕様）
+            return;
+        }
+        // 当たり(atari.png) → クリックしても閉じない（仕様）
     });
+
 
     /* ============== モーダル開閉 ============== */
     function openModal(src){
+        // 既存タイマーの停止
         if (autoCloseTimer) { clearTimeout(autoCloseTimer); autoCloseTimer = null; }
+        if (keyTimer) { clearTimeout(keyTimer); keyTimer = null; }
+
         $mimg.src = src;
         $modal.setAttribute('open','');
+
+        // 鍵の初期状態をリセット
+        if ($key){
+            $key.src = PATH.key;
+            $key.classList.remove('show');
+            $key.style.opacity = '0';
+        }
     }
+
     function closeModal(){
-         if (autoCloseTimer) { clearTimeout(autoCloseTimer); autoCloseTimer = null; }
+        if (autoCloseTimer) { clearTimeout(autoCloseTimer); autoCloseTimer = null; }
+        if (keyTimer) { clearTimeout(keyTimer); keyTimer = null; }
+
         $modal.removeAttribute('open');
         currentSelection = null;
+
         const unopened = Array.from(document.querySelectorAll('.cell'))
         .filter(c => c.getAttribute('aria-disabled') !== 'true');
 
         if (unopened.length === 1) {
             showReshuffleThenReset();
         }
-        currentSelection = null;
     }
 
     // 追加：演出→全箱リセット→当たりを再抽選
