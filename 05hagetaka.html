@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&display=swap" rel="stylesheet">
+<title>High Unique Number Game</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#272f41; --muted:#232737; --ink:#e6e8ef; --ink-dim:#9aa3b2;
+    /* 8人分のプレイヤーカラー（枠色/背景色に利用） */
+    --c1:#ff6b6b; --c2:#4dabf7; --c3:#51cf66; --c4:#c4ad5a;
+    --c5:#705cad; --c6:#d487d4; --c7:#5cc0a2; --c8:#d3d3d3;
+    --winner:#ff3b30; /* 勝利数字の赤 */
+    --radius:14px;
+    --gap:100px;
+    --btn:56px; /* 数字ボタンのサイズ */
+  }
+  html,body{
+    width: 100%;
+    margin:0; background:black; 
+  }
+  body{
+    display:flex; 
+  }
+  .wrap{
+    width: 100%;
+    display:block;
+  }
+  .board{
+    padding:20px;
+    margin-top: 5%;
+    background:black;
+    display:grid; grid-template-columns:repeat(2,1fr); gap:30px;
+    place-items:center;
+  }
+  .entry{
+    width: 300px;
+    position:relative;
+    aspect-ratio:1/1; border-radius:30px;
+    background:#0c0f16; border:20px solid var(--muted);
+    display:grid; place-items:center; color:var(--ink);
+    transition: transform .08s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease;
+    box-shadow:0 0 0 0 transparent;
+    touch-action: manipulation;
+    font-family: "Darumadrop One";
+
+  }
+  .entry.locked{ cursor:not-allowed; }
+  .entry.locked .lock{ opacity:1; transform:none }
+  .entry .num-reveal{
+    position:absolute; inset:0; display:grid; place-items:center;
+    font-size: 180px; font-weight:800; letter-spacing:.02em;
+    opacity:0;
+    transform:translateY(-30px) scale(.92);
+    transition:opacity .25s ease, transform .28s ease;
+    text-shadow:0 0 20px black;
+  }
+  .entry.inactive{ opacity:.25; filter:grayscale(.6); pointer-events:none }
+  .entry.revealed .num-reveal{
+    opacity:1;
+    transform:translateY(-30px) scale(1);
+  }
+  .lock{
+    position:absolute; inset:0; display:grid; place-items:center;
+    font-size: 100px;
+    transition: transform .25s ease, opacity .25s ease;
+    opacity:0; transform:scale(.85);
+  }
+  .lock.fade{ opacity:0; transform:scale(.7) rotate(-8deg) }
+  
+  .reset-area{
+    display:flex; gap:0; align-items:center; justify-content:flex-end;
+  }
+  .icon-btn{
+    font-size: 80px;
+    width:44px; height:44px; border-radius:50%;
+    background:#0d1020; border:1px solid #2b3044; color:var(--ink);
+    display:grid; place-items:center; cursor:pointer;
+    transition: transform .08s ease, background .2s ease, opacity .2s ease;
+  }
+  .icon-btn:disabled{ opacity:.4; cursor:not-allowed }
+  .sr-only{ position:absolute !important; width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0 }
+
+  .rule{
+    color:rgb(219, 219, 219);
+    cursor: pointer;
+    touch-action: manipulation;
+    font-size: 50px;
+    font-family: "Darumadrop One";
+    text-align: center;
+  }
+  .rule span{
+    font-size: 60px;
+  }
+
+  .btn{
+    display: block;
+    width: 60%;
+    font-size: 80px;
+    font-family: "Darumadrop One", sans-serif;
+    margin: 30px auto 0;
+    padding-bottom: .3em;
+    border: none;
+    border-radius: 30px;
+    background: #d42a2a;
+    color: white;
+    touch-action: manipulation;
+    user-select: none;
+  }
+  #resetBtn{background: #5cc0a2;display: none;}
+  .btn:disabled{
+    opacity:.4;
+  }
+
+  /* モーダル */
+  .modal{
+    position:fixed; inset:0; display:none;
+    background:#0008; backdrop-filter:saturate(1.2) blur(8px);
+  }
+  .modal.open{ display:flex; animation:fade .3s ease }
+  @keyframes fade{ from{opacity:0} to{opacity:1} }
+  .sheet{
+    width: 60%;
+    height: 50%;
+    margin: 20% auto;
+    background:var(--panel);
+    border:20px solid var(--muted);
+    border-radius: 50px;
+    padding:50px; 
+    display:grid; gap:14px;
+    transition: border-color .2s ease;
+  }
+  .grid10{
+    display:grid;
+    grid-template-columns:repeat(2,1fr); gap:50px;
+  }
+  .pick{
+    width:100%; height:100%;
+    border-radius:24px; border:0;
+    background:#d4d3d3;
+    font-family: "Darumadrop One"; color:var(--panel); font-size:120px;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  /* プレイヤー枠色 */
+  .p1{ border-color:var(--c1) } 
+  .p2{ border-color:var(--c2) }
+  .p3{ border-color:var(--c3) } 
+  .p4{ border-color:var(--c4) }
+  .p5{ border-color:var(--c5) } 
+  .p6{ border-color:var(--c6) }
+  .p7{ border-color:var(--c7) } 
+  .p8{ border-color:var(--c8) }
+  /* ボタンの色 */
+  .bg1{ background:var(--c1) }
+  .bg2{ background:var(--c2) }
+  .bg3{ background:var(--c3) }
+  .bg4{ background:var(--c4) }
+  .bg5{ background:var(--c5) }
+  .bg6{ background:var(--c6) }
+  .bg7{ background:var(--c7) }
+  .bg8{ background:var(--c8) }
+
+  /* 勝利数字の強調（公開後） */
+  .entry.winner .num-reveal{ color:var(--winner); text-shadow:0 0 30px white;
+    transform:translateY(-30px) scale(1.4);
+    transition: transform .25s ease;
+  }
+
+  /* メディア・アクセシビリティ */
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; animation:none !important }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap" aria-live="polite">
+    
+    <div id="board" class="board" role="grid" aria-label="エントリー">
+      <!-- 8人分のエントリーボタンを生成 -->
+    </div>
+    <p class="rule">Only<span>1</span> is No.<span>1</span></p>
+    <!-- ジャッジ -->
+    <button id="judgeBtn" class="btn" disabled>JUDGEMENT</button>
+    <button id="resetBtn" class="btn">RESET</button>
+    
+  </div>
+
+  <!-- モーダル（数字選択） -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-label="数字を選択">
+    <div class="sheet">
+      <div class="grid10" role="group" aria-label="数字">
+        <!-- 1〜10を生成 -->
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const board = document.getElementById('board');
+  const modal = document.getElementById('modal');
+  const grid10 = modal.querySelector('.grid10');
+  const judgeBtn = document.getElementById('judgeBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  const N_PLAYERS = 8;
+  const COLORS = [1,2,3,4,5,6,7,8]; // CSSクラス用の番号
+  const state = {
+    picks: Array(N_PLAYERS).fill(null), // 各プレイヤーの選んだ数字（1..10）
+    locked: Array(N_PLAYERS).fill(false),
+    pickingIndex: null,
+    judged: false
+  };
+
+  // --- UI生成: エントリー8個 ---
+  for(let i=0;i<N_PLAYERS;i++){
+    const btn = document.createElement('button');
+    btn.type='button';
+    btn.className=`entry p${COLORS[i]}`;
+    btn.setAttribute('role','gridcell');
+    btn.setAttribute('aria-label',`プレイヤー${i+1}`);
+    btn.dataset.idx = i;
+
+    // ロック＆公開用の層
+    const lock = document.createElement('div');
+    lock.className='lock';
+    lock.innerText='🔒';
+    lock.setAttribute('aria-hidden','true');
+
+    const reveal = document.createElement('div');
+    reveal.className='num-reveal';
+    reveal.textContent=''; // 公開時に数字を入れる
+
+    btn.appendChild(lock);
+    btn.appendChild(reveal);
+
+    btn.addEventListener('click', onEntryClick);
+    board.appendChild(btn);
+  }
+
+  // --- UI生成: 数字1〜10 ---
+  function buildNumberButtons(order){
+    grid10.innerHTML = '';
+    order.forEach(n=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='pick';
+    b.textContent=String(n);
+    b.setAttribute('aria-label',`数字${n}`);
+    b.addEventListener('click', ()=> chooseNumber(n));
+    grid10.appendChild(b);
+    });
+  }
+
+// 1..10 をシャッフル（Fisher–Yates）
+function randomOrder(){
+const arr=[1,2,3,4,5,6,7,8,9,10];
+for(let i=arr.length-1;i>0;i--){
+const j=Math.floor(Math.random()*(i+1));
+[arr[i],arr[j]]=[arr[j],arr[i]];
+}
+return arr;
+}
+
+  function onEntryClick(e){
+    const idx = Number(e.currentTarget.dataset.idx);
+    if(state.locked[idx]) return;
+    if(state.judged) return;
+    state.pickingIndex=idx;
+    openModal(idx);
+  }
+
+  function openModal(idx){
+    state.pickingIndex = idx;
+    buildNumberButtons(randomOrder());
+    modal.classList.add('open');
+
+    // モーダルの枠線をプレイヤーカラーに変更
+    const sheet = modal.querySelector('.sheet');
+    sheet.style.borderColor = getComputedStyle(document.documentElement)
+    .getPropertyValue(`--c${COLORS[idx]}`).trim();
+  }
+
+  function closeModal(){
+    modal.classList.remove('open');
+  }
+
+  modal.addEventListener('click', (e)=>{
+    if(e.target === modal){
+      state.pickingIndex = null;
+      closeModal();
+      }
+    });
+
+  function chooseNumber(n){
+    const idx = state.pickingIndex;
+    if(idx==null) return;
+    // 記録
+    state.picks[idx]=n;
+    state.locked[idx]=true;
+
+    const cell = board.children[idx];
+    cell.classList.add('locked', `bg${COLORS[idx]}`);
+    cell.setAttribute('aria-pressed','true');
+    // ロックアイコンは既に表示中（登録済み表現として継続）
+    updateJudgeEnabled();
+    state.pickingIndex=null;
+    closeModal();
+  }
+
+  function updateJudgeEnabled(){
+    const count = state.picks.filter(v=>v!=null).length;
+    judgeBtn.disabled = !(count>=3 && !state.judged);
+  }
+
+  judgeBtn.addEventListener('click', async ()=>{
+    if(judgeBtn.disabled) return;
+    state.judged=true;
+    judgeBtn.disabled=true;
+
+    // 先に未エントリー枠を暗くする
+    const entries = [...board.children];
+    entries.forEach((cell,i)=>{
+        if(state.picks[i]==null){
+            cell.classList.add('inactive');
+        }
+    });
+
+    // 順番にロックを外して数字を表示（登録済みのみ）
+    for(let i=0;i<entries.length;i++){
+      const n = state.picks[i];
+      const cell = entries[i];
+      if(n==null) continue;
+
+      // ロック解除アニメ→数字表示
+      const lock = cell.querySelector('.lock');
+      lock.classList.add('fade');
+      await wait(1000);//ロックアイコンが消えるまで
+      lock.style.display='none';
+
+      const reveal = cell.querySelector('.num-reveal');
+      reveal.textContent=String(n);
+      cell.classList.add('revealed');
+      await wait(500);//次の公開に進むまで
+    }
+
+    // 勝利数字の判定（最大の一意な数字）
+    const win = findHighestUnique(state.picks);
+    // すべて公開後に強調
+    if(win!=null){
+        for (let i = 0; i < entries.length; i++){
+        if(state.picks[i]===win){
+          await wait(500);
+          entries[i].classList.add('winner');
+        
+        }
+      };
+    }
+      //引分け処理
+      document.getElementById('judgeBtn').style.display='none';
+      document.getElementById('resetBtn').style.display='block';
+  });
+
+  resetBtn.addEventListener('click', ()=>{
+    // 状態クリア
+    state.picks.fill(null);
+    state.locked.fill(false);
+    state.pickingIndex=null;
+    state.judged=false;
+    document.getElementById('resetBtn').style.display='none';
+    document.getElementById('judgeBtn').style.display='block';
+
+    // UIクリア
+    [...board.children].forEach((cell,i)=>{
+      cell.className=`entry p${COLORS[i]}`;
+      const lock = cell.querySelector('.lock');
+      const reveal = cell.querySelector('.num-reveal');
+      lock.style.display=''; lock.classList.remove('fade');
+      reveal.textContent=''; cell.classList.remove('revealed','winner',
+        `bg${COLORS[i]}`);
+        cell.classList.remove('inactive');
+    });
+    updateJudgeEnabled();
+  });
+
+  function findHighestUnique(arr){
+    // カウント（1..10のみ対象）
+    const counts = new Map();
+    for(const v of arr){
+      if(typeof v==='number'){
+        counts.set(v, (counts.get(v)||0)+1);
+      }
+    }
+    for(let n=10;n>=1;n--){
+      if(counts.get(n)===1) return n;
+    }
+    return null; // 該当なし
+  }
+
+  function wait(ms){ return new Promise(r=>setTimeout(r,ms)) }
+
+  // 初期アクセシビリティ設定
+  updateJudgeEnabled();
+})();
+</script>
+</body>
+</html>

@@ -46,7 +46,13 @@
     <iframe id="tool-frame" title="ツール表示領域"></iframe>
 
 <script>
-    const tools = ['tool1.html', 'tool2.html', 'tool3.html', 'tool4.html'];
+    const tools = [
+      '01roulette.html',
+      '02finger.html',
+      '03makimono.html',
+      '04treasure.html',
+      '05hagetaka.html'
+    ];
     const frame = document.getElementById('tool-frame');
     const btn = document.getElementById('reload-btn');
 
@@ -61,6 +67,9 @@
 
     // ボタンクリックで再抽選
     btn.addEventListener('click', loadRandomTool);
+
+    //動作テスト
+    // document.getElementById('tool-frame').src='05hagetaka.html';
 </script>
 </body>
 </html>
