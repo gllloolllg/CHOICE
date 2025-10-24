@@ -38,6 +38,7 @@
         border-radius:8px;
         padding:0 20px 10px; 
         z-index: 10;
+        touch-action: manipulation;
     }
   </style>
 </head>
@@ -51,7 +52,8 @@
       '02finger.html',
       '03makimono.html',
       '04treasure.html',
-      '05hagetaka.html'
+      '05hagetaka.html',
+      '06race.html'
     ];
     const frame = document.getElementById('tool-frame');
     const btn = document.getElementById('reload-btn');
@@ -69,7 +71,7 @@
     btn.addEventListener('click', loadRandomTool);
 
     //動作テスト
-    // document.getElementById('tool-frame').src='05hagetaka.html';
+    // document.getElementById('tool-frame').src='06race.html';
 </script>
 </body>
 </html>

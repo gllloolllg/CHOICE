@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>Reaction Race - Tap Start!</title>
+<meta name="theme-color" content="#111" />
+<style>
+  :root{
+    --c-red:#ef4444;
+    --c-blue:#3b82f6;
+    --c-yellow:#f59e0b;
+    --c-green:#22c55e;
+    --c-sky:#06b6d4;          /* 水色（sky） */
+    --c-purple:#a855f7;
+
+    --bg:#0b0b0b;
+    --panel:#151515;
+    --text:#ffffff;
+    --muted:#9ca3af;
+    --outline:#2a2a2a;
+
+    --btn-size: min(250px, 24vw);
+    --btn-gap: 370px;
+  }
+
+  html,body{
+    margin:0;
+    height:100%;
+    background:var(--bg);
+    color:var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    -webkit-touch-callout:none;
+    -webkit-text-size-adjust:100%;
+    touch-action: manipulation;       /* ダブルタップズーム抑止 */
+    user-select:none;
+  }
+
+  /* 画面レイアウト */
+  .app{
+    position:relative;
+    height:100svh;
+    width:100%;
+    display:grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: 1fr;
+    gap:0;
+    overflow:hidden;
+  }
+
+  /* サイドのボタン列 */
+  .side{
+    display:flex;
+    flex-direction:column;
+    /* justify-content:center; */
+    gap:var(--btn-gap);
+    padding:50% 12px 0;
+    width: clamp(88px, 16vw, 130px);
+    background: black;
+  }
+
+  .pbtn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    height:var(--btn-size);
+    border-radius:16px;
+    border:8px solid var(--outline);
+    background:transparent;
+    color:var(--text);
+    font-weight:700;
+    font-size: clamp(14px, 3.8vw, 18px);
+    letter-spacing:.2px;
+    outline:none;
+    transition: transform .04s ease, background-color .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .pbtn:active{ transform: scale(.98); }
+  .pbtn[disabled]{ opacity:.4; pointer-events:none; }
+
+  /* 色ごとの枠色 */
+  .pbtn[data-color="red"]    { border-color: var(--c-red); }
+  .pbtn[data-color="blue"]   { border-color: var(--c-blue); }
+  .pbtn[data-color="yellow"] { border-color: var(--c-yellow); }
+  .pbtn[data-color="green"]  { border-color: var(--c-green); }
+  .pbtn[data-color="sky"]    { border-color: var(--c-sky); }
+  .pbtn[data-color="purple"] { border-color: var(--c-purple); }
+
+  /* エントリー中（表示: READY、背景も色） */
+  .pbtn.entered[data-color="red"]    { background:color-mix(in oklab, var(--c-red) 80%, black); }
+  .pbtn.entered[data-color="blue"]   { background:color-mix(in oklab, var(--c-blue) 80%, black); }
+  .pbtn.entered[data-color="yellow"] { background:color-mix(in oklab, var(--c-yellow) 80%, black); }
+  .pbtn.entered[data-color="green"]  { background:color-mix(in oklab, var(--c-green) 80%, black); }
+  .pbtn.entered[data-color="sky"]    { background:color-mix(in oklab, var(--c-sky) 80%, black); }
+  .pbtn.entered[data-color="purple"] { background:color-mix(in oklab, var(--c-purple) 80%, black); }
+
+  /* レース開始後（GO!）は背景はそのまま、フライング・走行後は空白&無効化 */
+
+  /* 文字回転 */
+  .side.left .pbtn .label {
+        display: inline-block;
+        transform: rotate(90deg);
+        font-size: 40px;
+    }
+    .side.right .pbtn .label {
+        display: inline-block;
+        transform: rotate(-90deg);
+        font-size: 40px;
+    }
+
+  /* 中央レーン */
+  .center{
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .track{
+    position:relative;
+    height:100%;
+    aspect-ratio: 9 / 16;        /* 目安：縦長 */
+    width:100%;
+    background:#222;
+    border-left:1px solid rgba(255,255,255,.06);
+    border-right:1px solid rgba(255,255,255,.06);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.03);
+    overflow: hidden;
+  }
+  .track img.bg-road{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover; object-position:center;
+    transform: scale(1.2);
+    filter: contrast(1.05) brightness(.95);
+    pointer-events:none;
+  }
+
+  /* 信号＆READY */
+  .signal-wrap{
+    position:absolute; left:50%; top:30%; transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    z-index:5;
+  }
+  .ready-btn{
+    appearance:none; border:none; border-radius:30px; padding:20px 40px;
+    background:#ffd60a; color:#000000; font-weight:900; letter-spacing:.4px;
+    box-shadow: 0 0 24px rgba(0,0,0,.25);
+    font-size: clamp(14px, 5vw, 100px);
+  }
+  .signal{
+    width: clamp(90px, 40vw, 500px);
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,.8));
+    display:none;
+  }
+
+  /* 車のレイヤー */
+  .cars-layer{
+    position:absolute; inset:0; pointer-events:none;
+  }
+  .car{
+    position:absolute;
+    width: clamp(40px, 10vw, 64px);
+    aspect-ratio: 2 / 3;  /* 車画像の目安 */
+    bottom: 20%;
+    transform: translate(-50%, 0);
+    image-rendering: -webkit-optimize-contrast;
+    z-index:2;
+  }
+
+  /* ゴールライン */
+  .goal {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 10%;
+    height: 32px;
+    background:
+        repeating-linear-gradient(
+        90deg,
+        #fff 0 16px, #000 16px 32px
+        ),
+        repeating-linear-gradient(
+        90deg,
+        #000 0 16px, #fff 16px 32px
+        );
+    background-size: 100% 16px, 100% 16px;   /* ← 各段の高さ */
+    background-position: 0 0, 0 16px;       /* ← 1段目と2段目の縦位置をずらす */
+    background-repeat: repeat-x, repeat-x; /* ← 横方向に繰り返す */
+    opacity: .9;
+    z-index: 1;
+    }
+
+
+  /* 結果オーバーレイ */
+  .overlay{
+    position:absolute; inset:0; display:none;
+    background: rgba(0,0,0,.65);
+    align-items:center; justify-content:center;
+    z-index:10;
+  }
+  .dialog{
+    background: var(--panel);
+    border:1px solid var(--outline);
+    border-radius:20px;
+    padding:18px 16px;
+    width:min(90%, 420px);
+    text-align:center;
+    box-shadow: 0 24px 60px rgba(0,0,0,.4);
+  }
+  .dialog h2{
+    margin:6px 0 10px; font-size: clamp(18px, 6vw, 24px);
+  }
+  .dialog p{ color:var(--muted); margin:0 0 12px; }
+  .dialog .again{
+    appearance:none; border:none; border-radius:12px; padding:12px 16px;
+    background:#fff; color:#111; font-weight:800;
+    width:100%;
+  }
+
+  /* 横向き時の注意（簡易） */
+  @media (orientation: landscape){
+    .rotate-hint{ display:flex; }
+  }
+  .rotate-hint{
+    position:fixed; inset:0; background:#000; color:#fff;
+    display:none; align-items:center; justify-content:center;
+    z-index:9999; text-align:center; padding:24px;
+  }
+  .rotate-hint strong{ display:block; font-size:20px; margin-bottom:8px; }
+</style>
+</head>
+<body>
+<div class="rotate-hint" aria-hidden="true">
+  <div>
+    <strong>縦向きにしてください</strong>
+    <div>このゲームは縦画面で最適化されています。</div>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <!-- 左側 3ボタン -->
+  <aside class="side left" aria-label="左のプレイヤー">
+    <button class="pbtn" data-id="0" data-color="red"    aria-label="Player Red"><span class="label">ENTRY?</span></button>
+    <button class="pbtn" data-id="1" data-color="blue"   aria-label="Player Blue"><span class="label">ENTRY?</span></button>
+    <button class="pbtn" data-id="2" data-color="yellow" aria-label="Player Yellow"><span class="label">ENTRY?</span></button>
+  </aside>
+
+  <!-- 中央 -->
+  <main class="center" aria-live="polite">
+    <div class="track" id="track" role="region" aria-label="コース">
+      <img class="bg-road" src="tool6/road.png" alt="レースコース" />
+      <div class="goal" id="goal"></div>
+
+      <div class="signal-wrap">
+        <button id="ready" class="ready-btn" hidden>READY</button>
+        <img id="signal" class="signal" src="tool6/signal_off.png" alt="スタート信号" />
+      </div>
+
+      <div class="cars-layer" id="carsLayer" aria-hidden="true"></div>
+    </div>
+  </main>
+
+  <!-- 右側 3ボタン -->
+  <aside class="side right" aria-label="右のプレイヤー">
+    <button class="pbtn" data-id="3" data-color="green"  aria-label="Player Green"><span class="label">ENTRY?</span></button>
+    <button class="pbtn" data-id="4" data-color="sky"    aria-label="Player Sky"><span class="label">ENTRY?</span></button>
+    <button class="pbtn" data-id="5" data-color="purple" aria-label="Player Purple"><span class="label">ENTRY?</span></button>
+  </aside>
+</div>
+
+<!-- 結果 -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+  <div class="dialog">
+    <h2 id="resultTitle">結果</h2>
+    <p id="resultText"></p>
+    <button class="again" id="againBtn">もう一度</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ====== 設定 ======
+  const IMG = {
+    red:    'tool6/car_red.png',
+    blue:   'tool6/car_blue.png',
+    yellow: 'tool6/car_yellow.png',
+    green:  'tool6/car_green.png',
+    sky:    'tool6/car_sky.png',
+    purple: 'tool6/car_purple.png',
+    road:   'tool6/road.png',
+    sigOff: 'tool6/signal_off.png',
+    sigOn:  'tool6/signal_on.png',
+  };
+  const COLORS = ['red','blue','yellow','green','sky','purple'];
+  const LANES  = 6;
+  const START_DELAY_MIN = 4000; // 4s
+  const START_DELAY_MAX = 8000; // 8s
+  const CAR_SPEED = 320; // px/秒（等速）
+
+  // ====== 状態管理 ======
+  const state = {
+    phase: 'idle', // idle -> armed(READY押下後=待機) -> go(信号ON) -> finished
+    players: Array.from({length:LANES}, (_,i)=>({
+      id:i, color:COLORS[i],
+      entered:false,
+      disqualified:false,
+      moving:false,
+      carEl:null,
+      y:0,         // bottomからのpxではなく、CSS bottom を使うために top座標を保持
+      goPressedAt: null,
+      startedAt: null,
+    })),
+    startAt:null,       // READY押下時刻
+    signalTimer:null,
+    rafId:null,
+    winner:null,
+  };
+
+  const app = document.getElementById('app');
+  const track = document.getElementById('track');
+  const carsLayer = document.getElementById('carsLayer');
+  const goal = document.getElementById('goal');
+  const readyBtn = document.getElementById('ready');
+  const signalImg = document.getElementById('signal');
+  const overlay = document.getElementById('overlay');
+  const resultText = document.getElementById('resultText');
+  const againBtn = document.getElementById('againBtn');
+
+  // レーンX位置を計算（左右3本ずつ）
+  function laneXPercent(idx){
+    // 6レーンを均等配置（5%余白）
+    const inner = 90; // %
+    const leftPad = 5;
+    const step = inner / (LANES + 1);
+    return leftPad + step * (idx + 1);
+  }
+
+  // 初期化（車DOMの用意はENTRY時に作る）
+  function resetAll(){
+    // タイマ・アニメ停止
+    if (state.signalTimer) clearTimeout(state.signalTimer);
+    cancelAnimationFrame(state.rafId);
+    state.phase = 'idle';
+    state.startAt = null;
+    state.winner = null;
+
+    signalImg.style.display = 'none';
+    signalImg.src = IMG.sigOff;
+    readyBtn.hidden = true;
+    // ボタン表示初期化
+    document.querySelectorAll('.pbtn').forEach(btn=>{
+      btn.querySelector('.label').textContent = 'ENTRY?';
+      btn.classList.remove('entered');
+      btn.disabled = false;
+    });
+    // 車消去
+    carsLayer.innerHTML = '';
+    state.players.forEach(p=>{
+      p.entered=false; p.disqualified=false; p.moving=false; p.carEl=null; p.goPressedAt=null; p.startedAt=null;
+    });
+    overlay.style.display = 'none';
+  }
+
+  // ENTRYトグル
+  function toggleEntry(id){
+    if (state.phase !== 'idle') return; // READY以降はエントリー変更不可
+    const p = state.players[id];
+    p.entered = !p.entered;
+
+    const btn = getBtn(id);
+    if (p.entered){
+      // 表示をREADY・背景色ON
+      btn.querySelector('.label').textContent = 'READY';
+      btn.classList.add('entered');
+      // 車をスタート位置に生成
+      spawnCar(p);
+    }else{
+      btn.querySelector('.label').textContent = 'ENTRY?';
+      btn.classList.remove('entered');
+      // 車削除
+      if (p.carEl) { p.carEl.remove(); p.carEl=null; }
+    }
+
+    // 2人以上なら中央READYを表示
+    const count = state.players.filter(x=>x.entered).length;
+    readyBtn.hidden = !(count >= 2);
+  }
+
+  // 車生成
+  function spawnCar(p){
+    const el = document.createElement('img');
+    el.src = IMG[p.color];
+    el.alt = `${p.color} car`;
+    el.className = 'car';
+    // X位置
+    el.style.left = laneXPercent(p.id) + '%';
+    // スタート地点（下端10pxからスタート）
+    const trackHeight = track.clientHeight;
+    const initBottomPx = Math.max(10, Math.round(trackHeight * 0.1)); // 下端から12%をpxに
+    el.style.bottom = initBottomPx + 'px';
+    carsLayer.appendChild(el);
+    p.carEl = el;
+  }
+
+  // READY（中央）押下
+  function armStart(){
+    if (state.phase !== 'idle') return;
+    if (state.players.filter(p=>p.entered).length < 2) return;
+
+    state.phase = 'armed';
+    state.startAt = performance.now();
+
+    // エントリー済のボタンをGO!に変更、未エントリーや失格は空白&無効化
+    document.querySelectorAll('.pbtn').forEach(btn=>{
+      const id = +btn.dataset.id;
+      const p = state.players[id];
+      if (p.entered){
+        btn.querySelector('.label').textContent = 'GO!';
+      }else{
+        btn.textContent = '';
+        btn.disabled = true;
+      }
+    });
+
+    // READYボタン非表示、信号OFF表示
+    readyBtn.hidden = true;
+    signalImg.style.display = 'block';
+    signalImg.src = IMG.sigOff;
+
+    // ランダム遅延で信号ON
+    const delay = Math.floor(Math.random()*(START_DELAY_MAX-START_DELAY_MIN+1)) + START_DELAY_MIN;
+    state.signalTimer = setTimeout(()=>{
+      state.phase = 'go';
+      signalImg.src = IMG.sigOn;
+    }, delay);
+  }
+
+  // GO!押下（プレイヤー）
+  function onGoPress(id){
+    const p = state.players[id];
+    const btn = getBtn(id);
+    if (!p.entered || p.disqualified || !btn) return;
+    // レース開始前ならフライング
+    if (state.phase !== 'go'){
+      // 失格処理（車消去、ボタン無効化＆空白）
+      p.disqualified = true;
+      if (p.carEl) { p.carEl.remove(); p.carEl=null; }
+      btn.querySelector('.label').textContent = '⚠️';
+      btn.disabled = true;
+
+      // 全員無効になったら結果表示
+      checkAllInvalid();
+      return;
+    }
+
+    // 信号ON後：車を即座に動かし始める（優先）
+    if (!p.moving){
+      p.moving = true;
+      p.goPressedAt = performance.now();
+      p.startedAt = p.goPressedAt;
+      // 走行開始（アニメが動いてなければ回す）
+      if (!state.rafId) tick();
+    }
+
+    // 1回押下後はボタンを空白＆無効化
+    btn.textContent = '';
+    btn.disabled = true;
+  }
+
+  // アニメループ
+  function tick(){
+    const last = performance.now();
+    let prev = last;
+    function frame(now){
+      const dt = (now - prev) / 1000; // 秒
+      prev = now;
+
+      // 各車移動
+      state.players.forEach(p=>{
+        if (!p.moving || !p.carEl) return;
+        // bottom を増やして上へ
+        const currentBottom = parseFloat(p.carEl.style.bottom);
+        const nextBottom = currentBottom + CAR_SPEED * dt;
+        p.carEl.style.bottom = `${nextBottom}px`;
+        // ゴール判定
+        if (isCarBeyondGoal(p)){
+          state.winner = p;
+        }
+      });
+
+      if (state.winner){
+        finishRace(state.winner);
+        state.rafId = null;
+        return;
+      }
+      // 動いている車がまだあるなら継続
+      if (state.players.some(p=>p.moving)){
+        state.rafId = requestAnimationFrame(frame);
+      }else{
+        state.rafId = null;
+      }
+    }
+    state.rafId = requestAnimationFrame(frame);
+  }
+
+  function isCarBeyondGoal(p){
+    if (!p.carEl) return false;
+    const trackRect = track.getBoundingClientRect();
+    const goalRect = goal.getBoundingClientRect();
+    const carRect = p.carEl.getBoundingClientRect();
+    // 車の先頭（上端）がゴールライン上端より上に来たらゴール
+    return (carRect.top <= goalRect.top);
+  }
+
+  function finishRace(winner){
+    state.phase = 'finished';
+    // 以降の入力を停止
+    document.querySelectorAll('.pbtn').forEach(btn=>btn.disabled=true);
+
+    // 勝者表示
+    overlay.style.display = 'flex';
+    if (winner){
+      resultText.innerHTML = `勝者：<b style="text-transform:capitalize">${winner.color}</b>`;
+    }else{
+      resultText.textContent = '全員フライング（ノーコンテスト）';
+    }
+  }
+
+  function checkAllInvalid(){
+    // エントリー済が全員 disqualified になったら終了
+    const entrants = state.players.filter(p=>p.entered);
+    const invalidAll = entrants.length>0 && entrants.every(p=>p.disqualified);
+    if (invalidAll){
+      finishRace(null);
+    }
+  }
+
+  function getBtn(id){
+    return document.querySelector(`.pbtn[data-id="${id}"]`);
+  }
+
+  // 事件の結び付け
+  function bind(){
+    // ENTRY/READY/GO! 押下（同じボタンでフェーズに応じて動作）
+    document.querySelectorAll('.pbtn').forEach(btn=>{
+      const id = +btn.dataset.id;
+      // クリック & タッチ開始で即反応
+      btn.addEventListener('touchstart', (e)=>{
+        e.preventDefault();
+        if (state.phase === 'idle'){
+          // エントリートグル
+          toggleEntry(id);
+        }else{
+          onGoPress(id);
+        }
+      }, {passive:false});
+      btn.addEventListener('click', ()=>{
+        if (state.phase === 'idle'){
+          toggleEntry(id);
+        }else{
+          onGoPress(id);
+        }
+      });
+    });
+
+    readyBtn.addEventListener('click', armStart);
+    readyBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); armStart(); }, {passive:false});
+
+    againBtn.addEventListener('click', resetAll);
+    againBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); resetAll(); }, {passive:false});
+
+    // 2本指ピンチ等は残るが、ダブルタップズームは抑止
+    // iOS ダブルタップ対策（300ms問題はviewport指定で概ね解消）
+    let lastTouch = 0;
+    document.addEventListener('touchend', (e)=>{
+      const now = Date.now();
+      if (now - lastTouch <= 300){
+        e.preventDefault();
+      }
+      lastTouch = now;
+    }, {passive:false});
+
+    // リサイズで位置補正（必要なら将来拡張）
+    window.addEventListener('resize', ()=>{ /* レイアウトはCSS依存 */ });
+  }
+
+  // エントリー状況に応じたREADYボタン表示更新
+  function updateReadyVisibility(){
+    if (state.phase !== 'idle') return;
+    const count = state.players.filter(x=>x.entered).length;
+    readyBtn.hidden = !(count >= 2);
+  }
+
+  // 起動
+  resetAll();
+  bind();
+
+  // ENTRY数の変化に合わせてREADY制御（保険）
+  document.addEventListener('click', updateReadyVisibility, true);
+  document.addEventListener('touchstart', updateReadyVisibility, {capture:true, passive:true});
+})();
+</script>
+</body>
+</html>
