@@ -130,20 +130,32 @@
     border:20px solid var(--muted);
     border-radius: 50px;
     padding:50px; 
-    display:grid; gap:14px;
+    display:block;
     transition: border-color .2s ease;
+    container-type: size;
   }
   .grid10{
+    height: 100%;
     display:grid;
-    grid-template-columns:repeat(2,1fr); gap:50px;
+    grid-template-columns:repeat(2,1fr);
+    grid-template-rows:(5,1fr);    
+    gap:50px;
   }
   .pick{
     width:100%; height:100%;
     border-radius:24px; border:0;
     background:#d4d3d3;
-    font-family: "Darumadrop One"; color:var(--panel); font-size:120px;
+    font-family: "Darumadrop One"; color:var(--panel);
     user-select: none;
     touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-size: min(
+      calc((100cqh - (var(--gap) * 4)) / 5 * 0.7),  /* ← 5行の各行高から算出 */
+      calc((100cqw - var(--gap)) / 2 * 0.7)         /* ← 2列の各列幅から算出 */
+    );
   }
 
   /* プレイヤー枠色 */
