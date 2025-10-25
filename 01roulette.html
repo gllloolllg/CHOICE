@@ -14,38 +14,34 @@
     background-color: #000;
   }
   .colors {
-    margin: 40px;
+    margin: 5vw;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 32px;
+    gap: 4vw;
   }
   .color-btn {
+    max-height: 16vh;
     aspect-ratio: 1 / 1;
     appearance: none;
-    border: 10px solid #0003;
-    border-radius: 30px;
-    padding: 8px;
+    border: 5px solid #0003;
+    border-radius: 15px;
     color: #000;
     background: #eee;
-    display: grid;
+    display: block;
     place-items: center;
     user-select: none;
   }
   .color-btn[aria-pressed="true"] {
-    outline: 10px solid rgb(196, 196, 196);
+    outline: 5px solid rgb(196, 196, 196);
     filter: saturate(120%);
-  }
-  .chip {
-    width: 1.25em; height: 1.25em; border-radius: 30px; 
-    display: inline-block; vertical-align: middle; margin-right: .4em;
   }
 
   button.run {
     display: block;
     width: 60%;
-    font-size: 100px;
+    font-size: 2em;
     font-family: "Darumadrop One", sans-serif;
-    margin: 100px auto 0;
+    margin: 50px auto 0;
     padding-bottom: .3em;
     border: none;
     border-radius: 30px;
@@ -59,19 +55,20 @@
   .board { width: min(100vmin, 900px);
     height: min(100vmin, 900px);
     position: relative; 
+    margin-top: 100px;
   }
 
   .pointer {
     position: absolute;
-    top: 290px;
-    left: 46.25%;
+    top: 0;
+    left: 45%;
     transform: translateX(-0%);
     width: 0; height: 0;
-    border-left: 30px solid transparent; border-right: 30px solid transparent;
-    border-top: 48px solid #d12222;
+    border-left: 15px solid transparent; border-right: 15px solid transparent;
+    border-top: 24px solid #d12222;
   }
   svg { 
-    margin:300px auto 0;
+    margin:0 auto 0;
     width:98%; height:98%; display: block; }
   #wheel {
     transform-origin: 50% 50%;
@@ -86,19 +83,17 @@
 </style>
 </head>
 <body>
-   <section aria-labelledby="title">
     <div class="colors" id="colorGrid" role="group" aria-label="色を選択（任意数）"></div>
-  </section>
 
     <button class="run" id="runBtn" type="button" disabled>SPIN!</button>
 
   <div class="stage">
      <div class="board" aria-live="polite">
-      <div class="pointer" aria-hidden="true"></div>
-      <svg viewBox="0 0 100 100" aria-label="ルーレット">
-        <g id="wheel"></g>
-        <circle cx="50" cy="50" r="3" fill="#111"></circle>
-      </svg>
+        <div class="pointer" aria-hidden="true"></div>
+        <svg viewBox="0 0 100 100" aria-label="ルーレット">
+          <g id="wheel"></g>
+          <circle cx="50" cy="50" r="3" fill="#111"></circle>
+        </svg>
     </div>
   </div>
 
@@ -139,7 +134,6 @@ PALETTE.forEach((c, i) => {
 
   // 背景を色にする
   btn.style.backgroundColor = c.hex;
-  btn.title = c.name; // ツールチップで名前表示（視覚名不要なら削除可）
 
   btn.addEventListener('click', () => {
     const pressed = btn.getAttribute('aria-pressed') === 'true';

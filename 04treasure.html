@@ -13,30 +13,36 @@
         margin:0;
     }
   body{
-        padding: 20px;
         background: black;
         display:grid; place-items:center;
         }
 
   /* 数字ボタン（2〜12のみ可視） */
   .wrap{
-    margin-top: 200px;
-  }
+        padding: 20px;
+        margin-top: 10hv;
+    }
+
+    .hint{
+        color: white;
+        font-family: "Silkscreen", sans-serif;
+        text-align: center;
+    }
     .nums{ 
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap:48px;
+        gap:24px;
         justify-content:center;
-        margin: 0 auto;
+        margin: 50px auto;
     }
   .nums[hidden]{ display:none !important; }
   .nums button{
     background-color: black;
     color:white;
-    padding:20px 20px 28px;
-    border: 14px solid white;
+    padding:7px 7px 10px;
+    border: 10px solid white;
     border-radius: 0;
-    font-size:100px;
+    font-size:50px;
     line-height:1;
     font-family: "Silkscreen", sans-serif;
     font-weight: 400;
@@ -45,8 +51,8 @@
 
   /* 宝箱グリッド */
     .grid{ 
-        display:grid; gap:40px;
-        grid-template-columns:repeat(3, minmax(200px,1fr));
+        display:grid; gap:8vw;
+        grid-template-columns:repeat(3, minmax(20vw,1fr));
         justify-items: center;
         align-items: center;
         place-content: center;   /* グリッド全体を上下左右中央に配置 */
@@ -64,8 +70,8 @@
   }
   .cell[aria-disabled="true"]{ opacity:.7; cursor:not-allowed }
   .cell img{ 
-        width:200px;
-        height:200px; object-fit:contain; image-rendering:auto; 
+        width:20vw;
+        height:20vw; object-fit:contain; image-rendering:auto; 
         -webkit-user-drag: none; /* 画像ドラッグ禁止（Safari対応） */
         user-select: none;        /* 選択状態防止 */
         -webkit-tap-highlight-color: transparent; /* モバイルでの青ハイライト除去 */
@@ -97,7 +103,7 @@
         left: 50%;
         transform: translate(-50%, -120px); /* 上からスタート */
         top: 0;
-        width: 200px;           /* 鍵の大きさは適宜調整 */
+        width: 15%;           /* 鍵の大きさは適宜調整 */
         height: auto;
         opacity: 0;
         pointer-events: none;   /* クリック無効 */
@@ -151,6 +157,7 @@
 <body>
     <div class="wrap">
         <!-- 可視文字はこの数字ボタンのみ -->
+         <p class="hint" id="hint">Select the number of people</p>
         <div class="nums" id="numButtons" aria-label="個数を選択">
         <!-- JSで2〜12を生成 -->
         </div>
@@ -217,29 +224,30 @@
 
     /* ============== ラウンド開始 ============== */
     function startRound(chosen){
-    $nums.hidden = true;
+        document.getElementById('hint').style.display='none';
+        $nums.hidden = true;
 
-    const total = chosen + 1;
-    state.total = total;
-    state.winner = Math.floor(Math.random() * total);
+        const total = chosen + 1;
+        state.total = total;
+        state.winner = Math.floor(Math.random() * total);
 
-    $grid.innerHTML = '';
-    for(let i=0;i<total;i++){
-        const btn = document.createElement('button');
-        btn.className = 'cell';
-        btn.role = 'listitem';
-        btn.setAttribute('aria-label', `宝箱 ${i+1}`);
-        btn.dataset.index = String(i);
+        $grid.innerHTML = '';
+        for(let i=0;i<total;i++){
+            const btn = document.createElement('button');
+            btn.className = 'cell';
+            btn.role = 'listitem';
+            btn.setAttribute('aria-label', `宝箱 ${i+1}`);
+            btn.dataset.index = String(i);
 
-        const img = document.createElement('img');
-        img.src = PATH.close;
-        img.alt = '';
-        btn.appendChild(img);
+            const img = document.createElement('img');
+            img.src = PATH.close;
+            img.alt = '';
+            btn.appendChild(img);
 
-        btn.addEventListener('click', ()=> onChestClick(i, btn, img));
-        $grid.appendChild(btn);
-    }
-    $grid.hidden = false;
+            btn.addEventListener('click', ()=> onChestClick(i, btn, img));
+            $grid.appendChild(btn);
+        }
+        $grid.hidden = false;
     }
 
     /* ============== 1) グリッドの宝箱クリック → モーダルで閉箱を表示 ============== */

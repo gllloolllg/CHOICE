@@ -2,6 +2,9 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&display=swap" rel="stylesheet">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
 <title>Reaction Race - Tap Start!</title>
 <meta name="theme-color" content="#111" />
@@ -20,8 +23,7 @@
     --muted:#9ca3af;
     --outline:#2a2a2a;
 
-    --btn-size: min(250px, 24vw);
-    --btn-gap: 370px;
+    --btn-size: 130px;
   }
 
   html,body{
@@ -29,7 +31,6 @@
     height:100%;
     background:var(--bg);
     color:var(--text);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
     -webkit-touch-callout:none;
     -webkit-text-size-adjust:100%;
     touch-action: manipulation;       /* ダブルタップズーム抑止 */
@@ -52,11 +53,11 @@
   .side{
     display:flex;
     flex-direction:column;
-    /* justify-content:center; */
-    gap:var(--btn-gap);
-    padding:50% 12px 0;
+    justify-content:space-between;
+    padding:10% 0 calc(var(--btn-size)/2);
     width: clamp(88px, 16vw, 130px);
-    background: black;
+    background: black ;
+    font-family: "Darumadrop One";
   }
 
   .pbtn{
@@ -65,16 +66,29 @@
     justify-content:center;
     width:100%;
     height:var(--btn-size);
-    border-radius:16px;
-    border:8px solid var(--outline);
+    border-radius:12px;
+    border:5px solid var(--outline);
     background:transparent;
     color:var(--text);
     font-weight:700;
-    font-size: clamp(14px, 3.8vw, 18px);
     letter-spacing:.2px;
     outline:none;
     transition: transform .04s ease, background-color .2s ease, border-color .2s ease, color .2s ease;
+  }  
+  /* 文字回転 */
+  .side.left .pbtn .label {
+    font-family: "Darumadrop One";
+    display: inline-block;
+    transform: rotate(90deg);
+    font-size: 22px;
   }
+  .side.right .pbtn .label {
+    font-family: "Darumadrop One";
+      display: inline-block;
+      transform: rotate(-90deg);
+      font-size: 22px;
+  }
+
   .pbtn:active{ transform: scale(.98); }
   .pbtn[disabled]{ opacity:.4; pointer-events:none; }
 
@@ -96,17 +110,6 @@
 
   /* レース開始後（GO!）は背景はそのまま、フライング・走行後は空白&無効化 */
 
-  /* 文字回転 */
-  .side.left .pbtn .label {
-        display: inline-block;
-        transform: rotate(90deg);
-        font-size: 40px;
-    }
-    .side.right .pbtn .label {
-        display: inline-block;
-        transform: rotate(-90deg);
-        font-size: 40px;
-    }
 
   /* 中央レーン */
   .center{
@@ -122,9 +125,6 @@
     aspect-ratio: 9 / 16;        /* 目安：縦長 */
     width:100%;
     background:#222;
-    border-left:1px solid rgba(255,255,255,.06);
-    border-right:1px solid rgba(255,255,255,.06);
-    box-shadow: inset 0 0 0 2px rgba(255,255,255,.03);
     overflow: hidden;
   }
   .track img.bg-road{
@@ -138,15 +138,15 @@
 
   /* 信号＆READY */
   .signal-wrap{
-    position:absolute; left:50%; top:30%; transform:translateX(-50%);
+    position:absolute; left:50%; top:40dvh; transform:translateX(-50%);
     display:flex; flex-direction:column; align-items:center; gap:8px;
     z-index:5;
   }
   .ready-btn{
-    appearance:none; border:none; border-radius:30px; padding:20px 40px;
+    appearance:none; border:none; padding:10px 20px;
     background:#ffd60a; color:#000000; font-weight:900; letter-spacing:.4px;
-    box-shadow: 0 0 24px rgba(0,0,0,.25);
-    font-size: clamp(14px, 5vw, 100px);
+    font-family: "Darumadrop One";
+    font-size: 30px;
   }
   .signal{
     width: clamp(90px, 40vw, 500px);
@@ -160,7 +160,7 @@
   }
   .car{
     position:absolute;
-    width: clamp(40px, 10vw, 64px);
+    width: clamp(20px, 6vw, 64px);
     aspect-ratio: 2 / 3;  /* 車画像の目安 */
     bottom: 20%;
     transform: translate(-50%, 0);
@@ -178,45 +178,69 @@
     background:
         repeating-linear-gradient(
         90deg,
-        #fff 0 16px, #000 16px 32px
+        #fff 0 8px, #000 8px 16px
         ),
         repeating-linear-gradient(
         90deg,
-        #000 0 16px, #fff 16px 32px
+        #000 0 8px, #fff 8px 16px
         );
-    background-size: 100% 16px, 100% 16px;   /* ← 各段の高さ */
-    background-position: 0 0, 0 16px;       /* ← 1段目と2段目の縦位置をずらす */
+    background-size: 100% 8px, 100% 8px;   /* ← 各段の高さ */
+    background-position: 0 0, 0 8px;       /* ← 1段目と2段目の縦位置をずらす */
     background-repeat: repeat-x, repeat-x; /* ← 横方向に繰り返す */
     opacity: .9;
     z-index: 1;
     }
 
+    /* 追加：インライン結果の配置と見た目 */
+.inline-result{
+  position: absolute;
+  width: 80%;
+  left: 50%;
+  top: 55%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: "Darumadrop One";
+  z-index: 15;                /* 信号より前に */
+}
+.inline-result[hidden]{
+  display: none !important;
+}
 
-  /* 結果オーバーレイ */
-  .overlay{
-    position:absolute; inset:0; display:none;
-    background: rgba(0,0,0,.65);
-    align-items:center; justify-content:center;
-    z-index:10;
-  }
-  .dialog{
-    background: var(--panel);
-    border:1px solid var(--outline);
-    border-radius:20px;
-    padding:18px 16px;
-    width:min(90%, 420px);
-    text-align:center;
-    box-shadow: 0 24px 60px rgba(0,0,0,.4);
-  }
-  .dialog h2{
-    margin:6px 0 10px; font-size: clamp(18px, 6vw, 24px);
-  }
-  .dialog p{ color:var(--muted); margin:0 0 12px; }
-  .dialog .again{
-    appearance:none; border:none; border-radius:12px; padding:12px 16px;
-    background:#fff; color:#111; font-weight:800;
-    width:100%;
-  }
+.inline-result .winner-img{
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,.35));
+}
+
+.inline-result span{  
+    font-family: "Darumadrop One";
+    font-size: 20px;
+}
+.inline-result .winner-text{
+  margin-top: -20px;
+  font-weight: 800;
+  font-size: 40px;
+  text-transform: capitalize;
+  font-family: "Darumadrop One";
+}
+
+.inline-result .again{
+  font-size:30px;
+  appearance: none;
+  border: none;
+  border-radius: 12px;
+  padding: 0 10px 5px;
+  background: #fff;
+  color: #111;
+  font-weight: 800;
+  box-shadow: 0 6px 18px rgba(0,0,0,.25);
+  font-family: "Darumadrop One";
+  margin-top: 0;
+}
+
+ 
 
   /* 横向き時の注意（簡易） */
   @media (orientation: landscape){
@@ -258,6 +282,7 @@
       </div>
 
       <div class="cars-layer" id="carsLayer" aria-hidden="true"></div>
+
     </div>
   </main>
 
@@ -267,16 +292,17 @@
     <button class="pbtn" data-id="4" data-color="sky"    aria-label="Player Sky"><span class="label">ENTRY?</span></button>
     <button class="pbtn" data-id="5" data-color="purple" aria-label="Player Purple"><span class="label">ENTRY?</span></button>
   </aside>
+
+ <!-- 追加：インライン結果表示 -->
+  <div id="inlineResult" class="inline-result" hidden>
+    <img id="winnerImg" alt="Winner" class="winner-img" />
+    <span>WINNER</span>
+    <p id="winnerText" class="winner-text" aria-live="polite"></p>
+    <button id="againInline" class="again">AGAIN</button>
+  </div>
+
 </div>
 
-<!-- 結果 -->
-<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
-  <div class="dialog">
-    <h2 id="resultTitle">結果</h2>
-    <p id="resultText"></p>
-    <button class="again" id="againBtn">もう一度</button>
-  </div>
-</div>
 
 <script>
 (() => {
@@ -292,6 +318,15 @@
     sigOff: 'tool6/signal_off.png',
     sigOn:  'tool6/signal_on.png',
   };
+  const WINNER_IMG = {
+    red:  'tool6/winner_red.png',
+    blue: 'tool6/winner_blue.png',
+    yellow: 'tool6/winner_yellow.png',
+    green: 'tool6/winner_green.png',
+    sky: 'tool6/winner_sky.png',
+    purple: 'tool6/winner_purple.png',
+  };
+
   const COLORS = ['red','blue','yellow','green','sky','purple'];
   const LANES  = 6;
   const START_DELAY_MIN = 4000; // 4s
@@ -323,9 +358,10 @@
   const goal = document.getElementById('goal');
   const readyBtn = document.getElementById('ready');
   const signalImg = document.getElementById('signal');
-  const overlay = document.getElementById('overlay');
-  const resultText = document.getElementById('resultText');
-  const againBtn = document.getElementById('againBtn');
+  const inlineResult = document.getElementById('inlineResult');
+  const winnerImg = document.getElementById('winnerImg');
+  const winnerTextEl = document.getElementById('winnerText');
+  const againInlineBtn = document.getElementById('againInline');
 
   // レーンX位置を計算（左右3本ずつ）
   function laneXPercent(idx){
@@ -359,7 +395,11 @@
     state.players.forEach(p=>{
       p.entered=false; p.disqualified=false; p.moving=false; p.carEl=null; p.goPressedAt=null; p.startedAt=null;
     });
-    overlay.style.display = 'none';
+    if (inlineResult) {
+      inlineResult.hidden = true;
+      winnerImg.removeAttribute('src');
+      winnerTextEl.textContent = '';
+    }
   }
 
   // ENTRYトグル
@@ -515,17 +555,29 @@
 
   function finishRace(winner){
     state.phase = 'finished';
-    // 以降の入力を停止
     document.querySelectorAll('.pbtn').forEach(btn=>btn.disabled=true);
 
-    // 勝者表示
-    overlay.style.display = 'flex';
+    // インライン結果を表示
     if (winner){
-      resultText.innerHTML = `勝者：<b style="text-transform:capitalize">${winner.color}</b>`;
+      const col = winner.color;
+      const path = WINNER_IMG[col];
+      if (path){
+        winnerImg.src = path;
+        winnerImg.style.display = '';
+      }else{
+        winnerImg.removeAttribute('src');
+        winnerImg.style.display = 'none';
+      }
+      winnerTextEl.textContent = `${col}`;
     }else{
-      resultText.textContent = '全員フライング（ノーコンテスト）';
+      // 全員フライング
+      winnerImg.removeAttribute('src');
+      winnerImg.style.display = 'none';
+      winnerTextEl.textContent = 'NO CONTEST';
     }
+    inlineResult.hidden = false;
   }
+
 
   function checkAllInvalid(){
     // エントリー済が全員 disqualified になったら終了
@@ -540,7 +592,7 @@
     return document.querySelector(`.pbtn[data-id="${id}"]`);
   }
 
-  // 事件の結び付け
+  
   function bind(){
     // ENTRY/READY/GO! 押下（同じボタンでフェーズに応じて動作）
     document.querySelectorAll('.pbtn').forEach(btn=>{
@@ -563,12 +615,14 @@
         }
       });
     });
+    function hardReload(){
+      location.reload()
+    }
 
     readyBtn.addEventListener('click', armStart);
     readyBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); armStart(); }, {passive:false});
 
-    againBtn.addEventListener('click', resetAll);
-    againBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); resetAll(); }, {passive:false});
+    againInlineBtn.addEventListener('click', hardReload);
 
     // 2本指ピンチ等は残るが、ダブルタップズームは抑止
     // iOS ダブルタップ対策（300ms問題はviewport指定で概ね解消）

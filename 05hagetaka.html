@@ -30,17 +30,16 @@
     display:block;
   }
   .board{
-    padding:20px;
     margin-top: 5%;
     background:black;
-    display:grid; grid-template-columns:repeat(2,1fr); gap:30px;
+    display:grid; grid-template-columns:repeat(2,1fr); gap:10px;
     place-items:center;
   }
   .entry{
-    width: 300px;
+    height: 12dvh;
     position:relative;
-    aspect-ratio:1/1; border-radius:30px;
-    background:#0c0f16; border:20px solid var(--muted);
+    aspect-ratio:1/1; border-radius:10px;
+    background:#0c0f16; border:8px solid var(--muted);
     display:grid; place-items:center; color:var(--ink);
     transition: transform .08s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease;
     box-shadow:0 0 0 0 transparent;
@@ -52,20 +51,27 @@
   .entry.locked .lock{ opacity:1; transform:none }
   .entry .num-reveal{
     position:absolute; inset:0; display:grid; place-items:center;
-    font-size: 180px; font-weight:800; letter-spacing:.02em;
+    font-size: 80px; font-weight:800; letter-spacing:.02em;
     opacity:0;
-    transform:translateY(-30px) scale(.92);
+    transform:translateY(-20px) scale(.92);
     transition:opacity .25s ease, transform .28s ease;
     text-shadow:0 0 20px black;
   }
   .entry.inactive{ opacity:.25; filter:grayscale(.6); pointer-events:none }
   .entry.revealed .num-reveal{
     opacity:1;
-    transform:translateY(-30px) scale(1);
+    transform:translateY(-20px) scale(1);
   }
+  
+  /* 勝利数字の強調（公開後） */
+  .entry.winner .num-reveal{ color:var(--winner); text-shadow:0 0 30px white;
+    transform:translateY(-20px) scale(1.4);
+    transition: transform .25s ease;
+  }
+
   .lock{
     position:absolute; inset:0; display:grid; place-items:center;
-    font-size: 100px;
+    font-size: 40px;
     transition: transform .25s ease, opacity .25s ease;
     opacity:0; transform:scale(.85);
   }
@@ -88,23 +94,23 @@
     color:rgb(219, 219, 219);
     cursor: pointer;
     touch-action: manipulation;
-    font-size: 50px;
+    font-size: 30px;
     font-family: "Darumadrop One";
     text-align: center;
+    margin: 5% 0 0;
   }
   .rule span{
-    font-size: 60px;
+    font-size: 40px;
   }
 
   .btn{
     display: block;
-    width: 60%;
-    font-size: 80px;
+    font-size: 40px;
     font-family: "Darumadrop One", sans-serif;
-    margin: 30px auto 0;
-    padding-bottom: .3em;
+    margin: 10px auto 0;
+    padding: 0 1em .3em;
     border: none;
-    border-radius: 30px;
+    border-radius: 10px;
     background: #d42a2a;
     color: white;
     touch-action: manipulation;
@@ -127,9 +133,9 @@
     height: 50%;
     margin: 20% auto;
     background:var(--panel);
-    border:20px solid var(--muted);
-    border-radius: 50px;
-    padding:50px; 
+    border:10px solid var(--muted);
+    border-radius: 30px;
+    padding:5%; 
     display:block;
     transition: border-color .2s ease;
     container-type: size;
@@ -139,11 +145,11 @@
     display:grid;
     grid-template-columns:repeat(2,1fr);
     grid-template-rows:(5,1fr);    
-    gap:50px;
+    gap:5%;
   }
   .pick{
     width:100%; height:100%;
-    border-radius:24px; border:0;
+    border-radius:10px; border:0;
     background:#d4d3d3;
     font-family: "Darumadrop One"; color:var(--panel);
     user-select: none;
@@ -152,10 +158,7 @@
     align-items: center;
     justify-content: center;
     line-height: 1;
-    font-size: min(
-      calc((100cqh - (var(--gap) * 4)) / 5 * 0.7),  /* ← 5行の各行高から算出 */
-      calc((100cqw - var(--gap)) / 2 * 0.7)         /* ← 2列の各列幅から算出 */
-    );
+    font-size: 4em;
   }
 
   /* プレイヤー枠色 */
@@ -177,11 +180,6 @@
   .bg7{ background:var(--c7) }
   .bg8{ background:var(--c8) }
 
-  /* 勝利数字の強調（公開後） */
-  .entry.winner .num-reveal{ color:var(--winner); text-shadow:0 0 30px white;
-    transform:translateY(-30px) scale(1.4);
-    transition: transform .25s ease;
-  }
 
   /* メディア・アクセシビリティ */
   @media (prefers-reduced-motion: reduce){
