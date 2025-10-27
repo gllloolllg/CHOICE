@@ -48,7 +48,7 @@
     gap: 0px 16px;
     width: 100dvw;
     padding:0 0 calc(var(--btn-size)/2);
-    margin: 0 auto;
+    margin: 0 auto 15px;
   }
   .lane {
     display:flex;
@@ -246,7 +246,7 @@
         </div>
       </div>
 
-      <!-- 中央コントロール（READY/RESET を差し替え表示） -->
+      <!-- 中央コントロール -->
       <div class="center-controls" id="center" aria-live="polite"></div>
 
   </div>
@@ -274,6 +274,24 @@ const state = {
     timer: null,       // setTimeout ハンドル
   })),
 };
+
+let assetsReady = false;
+const ASSETS = [IMG_READY, IMG_START, IMG_STOP];
+
+async function preloadAssets() {
+  await Promise.all(ASSETS.map((src) => {
+    const img = new Image();
+    img.fetchPriority = "high";  // 可能なら高優先度
+    img.decoding = "sync";       // 直ちにデコード
+    img.src = src;
+    // decode() が使えない古い環境は onload にフォールバック
+    return img.decode ? img.decode().catch(() => new Promise(res => img.onload = res))
+                      : new Promise(res => img.onload = res);
+  }));
+  assetsReady = true;
+  updateReadyVisibility(); // READY の状態を更新
+}
+
 
 const center = document.getElementById('center');
 const buttons = Array.from(document.querySelectorAll('.pbtn'));
@@ -455,6 +473,7 @@ function showResults() {
 }
 
 /* ====== 初期UI適用 ====== */
+preloadAssets();
 updateReadyVisibility();
 state.players.forEach(setButtonVisual);
 

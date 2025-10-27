@@ -35,63 +35,82 @@
       padding-bottom: env(safe-area-inset-bottom);
       background-color: black;
     }
+    header{
+      display: flex;
+      height: 32px;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px;
+    }
+    #numDis {
+      font-family: "Darumadrop One";
+      height: 32px;
+      font-size: 20px;
+      color: #696969;
+    }
+    #reloadBtn {
+      height: 32px;
+      font-family: "Darumadrop One", sans-serif;
+      font-size: 20px;
+      color:#000000;
+      background: #303030;
+      border:none;
+      border-radius:8px;
+      padding:0 10px 5px; 
+      z-index: 10;
+      touch-action: manipulation;
+    }
 
     iframe {
       position: fixed;
-      top: 50px;
+      top: 40px;
       left: 0;
       width: 100%;
       height: 100%;
       border: none;
     }
 
-    #reload-btn {
-        position:fixed;
-        top:5px;
-        right: 5px;
-        font-family: "Darumadrop One", sans-serif;
-        font-size: 20px;
-        color:#000000;
-        background: #696969;
-        border:none;
-        border-radius:8px;
-        padding:0 10px 5px; 
-        z-index: 10;
-        touch-action: manipulation;
-    }
   </style>
 </head>
 <body>
-    <button id="reload-btn">CHANGE</button>
+  <header>
+      <div id="numDis"></div>
+      <button id="reloadBtn">CHANGE</button>
+  </header>
     <iframe id="tool-frame" title="ツール表示領域"></iframe>
 
 <script>
     const tools = [
-      '01roulette.html',
-      '02finger.html',
-      '03makimono.html',
-      '04treasure.html',
-      '05hagetaka.html',
-      '06race.html',
-      '07stopwatch.html'
+      { file: '01roulette.html', title: "2-12"},
+      { file: '02finger.html', title: "2+"},
+      { file: '03makimono.html', title: "2+"},
+      { file: '04treasure.html', title: "2-12"},
+      { file: '05hagetaka.html', title: "3-8"},
+      { file: '06race.html', title: "2-6"},
+      { file: '07stopwatch.html', title: "2-10"},
+      // { file: '0.html', title: ""},
+      // { file: '0.html', title: ""},
+      // { file: '0.html', title: ""},
     ];
+
+    const numDis = document.getElementById('numDis');
     const frame = document.getElementById('tool-frame');
-    const btn = document.getElementById('reload-btn');
 
     // ランダムにツールを選んでiframeに読み込む関数
     function loadRandomTool() {
         const i = Math.floor(Math.random() * tools.length);
-        frame.src = tools[i];
+        numDis.textContent = tools[i].title;
+        frame.src = tools[i].file;
     }
 
     // 初回ロード時
     loadRandomTool();
 
     // ボタンクリックで再抽選
-    btn.addEventListener('click', loadRandomTool);
+    document.getElementById('reloadBtn').addEventListener('click', loadRandomTool);
 
     //動作テスト
-    // document.getElementById('tool-frame').src='07stopwatch.html';
+    document.getElementById('tool-frame').src='07stopwatch.html';
 </script>
 </body>
 </html>
