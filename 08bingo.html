@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>BINGO</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="tool8/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&display=swap" rel="stylesheet">
+</head>
+<body>
+<main>
+      <div id="cardsContainer" class="cards-container" aria-label="ビンゴカードエリア">
+        <!-- 上段 3マス -->
+        <div id="slot-0" class="grid-cell"></div>
+        <div id="slot-1" class="grid-cell"></div>
+        <div id="slot-2" class="grid-cell"></div>
+
+        <!-- 中段 左 + 中央(スタート/抽選) + 右 -->
+        <div id="slot-3" class="grid-cell"></div>
+
+        <div class="grid-cell center-cell">
+          <button id="startButton" class="btn btn-primary">
+            START
+          </button>
+          <div
+            id="currentNumberArea"
+            class="current-number-area"
+            aria-live="polite"
+            style="display:none;"
+          >
+            <span id="currentNumber" class="current-number">-</span>
+          </div>
+        </div>
+
+        <div id="slot-4" class="grid-cell"></div>
+
+        <!-- 下段 3マス -->
+        <div id="slot-5" class="grid-cell"></div>
+        <div id="slot-6" class="grid-cell"></div>
+        <div id="slot-7" class="grid-cell"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="tool8/app.js"></script>
+</body>
+</html>
