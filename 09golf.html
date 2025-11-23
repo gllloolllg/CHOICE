@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>へんなゴルフゲーム</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="tool9/styles.css" />
+</head>
+<body>
+  <div class="game-container">
+    <button class="reset-button" id="resetButton">リセット</button>
+
+    <div class="game-area" id="gameArea">
+      <!-- 背景 -->
+      <div class="background"></div>
+
+      <!-- グリッドと穴・ボールを載せるレイヤー -->
+      <div class="grid-overlay" id="gridOverlay"></div>
+
+      <!-- ゴルファー -->
+      <img
+        src="tool9/golfer.png"
+        alt="ゴルファー"
+        class="golfer"
+        id="golfer"
+      />
+
+      <!-- 穴とボールはJSで追加 -->
+    </div>
+  </div>
+  <!-- 効果音 -->
+<audio id="seShot" src="tool9/shot.mp3" preload="auto"></audio>
+<audio id="seCupin" src="tool9/cupin.mp3" preload="auto"></audio>
+
+
+  <script src="tool9/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,159 @@
+:root {
+  --hole-radius: 24px;
+  --hole-border-width: 3px;
+  --ball-air-radius: 24px;
+  --ball-ground-radius: 7px;
+  --ball-ground-scale: 0.3; 
+}
+
+/* 全体リセット＆基本スタイル */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+    Arial, sans-serif;
+  background-color: #0b5f2a;
+  color: #ffffff;
+}
+
+/* ゲーム全体のレイアウト */
+.game-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.reset-button {
+  position: absolute;      /* ★上部固定にする */
+  top: 8px;
+  right: 8px;
+  z-index: 20;
+
+  border: none;
+  background: #ffcc33;
+  color: #333;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+
+  display: none;           /* ★最初は非表示。ボールが止まったらJSで表示 */
+}
+
+.reset-button:active {
+  transform: scale(0.96);
+}
+
+
+/* プレイエリア（背景＋グリッド＋ゴルファー） */
+.game-area {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  touch-action: none; /* スクロールを抑制してタップを取りやすく */
+}
+
+/* 背景画像（見下ろしゴルフ場） */
+.background {
+  position: absolute;
+  inset: 0;
+  background-image: url("course.png");
+  background-size: cover;
+  background-position: center;
+  filter: saturate(1.1);
+}
+
+/* グリッドレイヤー（透明） */
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  /* 列は常に5つの等分 */
+  grid-template-columns: repeat(5, 1fr);
+  /* 行はJSから追加（auto-rows） */
+  background: rgba(0, 0, 0, 0); /* 完全透明 */
+  pointer-events: none; /* グリッドセル自体はタップを拾わない */
+}
+
+/* グリッドのマス目（見た目だけ） */
+.grid-cell {
+  /* border: 1px solid rgba(255, 255, 255, 0.18); */
+  aspect-ratio: 1 / 1; /* 正方形 */
+}
+
+/* ゴルファー */
+.golfer {
+  position: absolute;
+  top: 6px;
+  width: 80px; /* 端末によってはもう少し大きくしてもOK */
+  height: auto;
+  transform: translateX(-50%); /* 左端ではなく中央基準で置くため */
+  z-index: 5;
+  touch-action: none;
+}
+
+.golfer:active {
+  transform: translateX(-50%) scale(0.97);
+}
+
+/* 穴（黒い丸） */
+.hole {
+  position: absolute;
+  width: calc(var(--hole-radius) * 2);
+  height: calc(var(--hole-radius) * 2);
+  border-radius: 50%;
+  background: #000000;
+  border: var(--hole-border-width) solid #ffffff;
+  transform: translate(-50%, -50%); /* 中心合わせ */
+  z-index: 2;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+/* 白いボール */
+.ball {
+  position: absolute;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
+  /* ★基準サイズは「上空ボール」のサイズに固定 */
+  width: calc(var(--ball-air-radius) * 2);
+  height: calc(var(--ball-air-radius) * 2);
+  transform: translate(-50%, -50%) scale(1);
+  z-index: 4;
+  /* ★サイズ変化は transform だけにする */
+  transition: transform 2s ease-out;
+}
+/* ★追加：ボールの影（地上ボールと同じサイズ・半透明の黒丸） */
+.ball-shadow {
+  position: absolute;
+  width: calc(var(--ball-ground-radius) * 2);
+  height: calc(var(--ball-ground-radius) * 2);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5); /* 透明度50%の黒 */
+  transform: translate(-50%, -50%);
+  z-index: 1; /* 穴より下、背景より上くらい */
+  filter: blur(1px); /* ほんの少しぼかして影っぽく */
+}
+
+
+/* 上空モードのボール（大きめ） */
+.ball-air {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* 地上モードのボール（小さめ） */
+.ball-ground {
+  transform: translate(-50%, -50%) scale(var(--ball-ground-scale));
+}
