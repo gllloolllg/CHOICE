@@ -21,8 +21,48 @@ let minHoles = 2;
 
 let ball = null;      // { x, y, vx, vy, radius, el, startTime, mode }
 let animationId = null;
-// ★追加：ボール速度と向き設定関数（直線移動・今までの約2倍速度）
+// ボール速度と向き設定関数（直線移動・今までの約2倍速度）
 const BALL_SPEED = 500; // px/sec（元の最大速度140の約2倍）
+
+//事前の音読み込み
+let audioWarmed = false;
+
+// ゴルファー画像リスト
+const GOLFER_IMAGES = [
+  "tool9/golfer/01.png",
+  "tool9/golfer//02.png",
+  "tool9/golfer//03.png",
+  "tool9/golfer//04.png",
+  "tool9/golfer//05.png",
+  "tool9/golfer//06.png",
+  "tool9/golfer//07.png",
+  "tool9/golfer//08.png",
+];
+
+function randomizeGolferImage() {
+  const idx = Math.floor(Math.random() * GOLFER_IMAGES.length);
+  golferEl.src = GOLFER_IMAGES[idx];
+}
+
+
+function warmupAudio() {
+  if (audioWarmed) return;
+  audioWarmed = true;
+
+  // 全効果音のウォームアップ
+  [seShot, seCupin].forEach(audio => {
+    if (!audio) return;
+    audio.volume = 0.0001; // ほぼ無音
+    audio.play().catch(()=>{});
+    setTimeout(() => {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = 1.0;
+    }, 100);
+  });
+}
+
+
 
 function setRandomDirection(ball, initialDownwards = false) {
   const speed = BALL_SPEED;
@@ -63,7 +103,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // レイアウト計算＆グリッド生成
   layoutGrid();
+
+  randomizeGolferImage();
   randomizeGolferPosition();
+
+  //ページロード時にボールを表示
+  createInitialBall();
+
 
   // 画面サイズが変わった時はグリッド再計算（穴の位置は割合で再計算するのが理想だが、
   // 趣味用途＆スマホメインなので、とりあえず「リセット」と同じ扱いにする）
@@ -71,6 +117,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // スマホ回転などでは一旦リセット
     resetGame();
   });
+
+  // 音の読み込み
+  gameArea.addEventListener("touchstart", () => {
+    warmupAudio();  // ★最初のタップで強制デコード
+  }, { passive: true });
 
   // グリッドへのタップ（タップ位置に穴を置く）
   gameArea.addEventListener(
@@ -175,20 +226,25 @@ function placeHoleAtClientCoords(clientX, clientY) {
 
   // 列、行
   const col = clamp(Math.floor(localX / gridCellSize), 0, 4); // 0〜4
-  const row = Math.floor(localY / gridCellSize); // 0〜rows-1（rowsはlayoutGrid内でのみ計算しているので、ここではfloorでOK）
+  const row = Math.floor(localY / gridCellSize);              // 0〜rows-1
+
+  // 同じセルにすでに穴がある場合は何もしない
+  const exists = holeList.some(h => h.col === col && h.row === row);
+  if (exists) {
+    return;
+  }
 
   // セル中心座標
   const centerX = (col + 0.5) * gridCellSize;
   const centerY = (row + 0.5) * gridCellSize;
 
-  // 穴生成
-  createHole(centerX, centerY);
-
-  
+  // 穴生成（セル情報も渡す）
+  createHole(centerX, centerY, col, row);
 }
 
+
 // 穴の生成
-function createHole(x, y) {
+function createHole(x, y, col, row) {
   const holeEl = document.createElement("div");
   holeEl.className = "hole";
 
@@ -214,8 +270,11 @@ function createHole(x, y) {
     radius,
     element: holeEl,
     order: order + 1,
+    col,  // ★どのセルかを保存
+    row,  // ★どのセルかを保存
   });
 }
+
 
 // ゴルファーの左右位置をランダムに決定
 function randomizeGolferPosition() {
@@ -231,6 +290,79 @@ function randomizeGolferPosition() {
   golferEl.style.left = `${randX}px`;
 }
 
+
+// ★ページロード時に、ゴルファーの左側に静止ボールを置いておく
+function createInitialBall() {
+  const ballAirRadius = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue(
+      "--ball-air-radius"
+    )
+  );
+  const ballGroundRadius = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue(
+      "--ball-ground-radius"
+    )
+  );
+
+  // gameArea / golfer の位置情報
+  const areaRect = gameArea.getBoundingClientRect();
+  const golferRect = golferEl.getBoundingClientRect();
+
+  // ゴルファーの「中央x」、足元のyを算出（ゲームエリア基準に変換）
+  const golferCenterX = golferRect.left - areaRect.left + golferRect.width / 2;
+  const golferFootY = golferRect.bottom - areaRect.top;
+
+  // ★ボールをゴルファーの左側に少しずらして配置
+  const offsetX = -50; // 左方向にずらす量（お好みで調整）
+  const offsetY = 0;   // 縦位置は足元に合わせる（必要なら±で調整）
+  let x = golferCenterX + offsetX;
+  let y = golferFootY + offsetY;
+
+  // 画面外に出ないように軽くクランプ
+  const margin = ballGroundRadius + 4;
+  x = clamp(x, margin, areaRect.width - margin);
+  y = clamp(y, margin, areaRect.height - margin);
+
+  // すでにボールがある場合はいったん消す（リセット時用の保険）
+  if (ball) {
+    if (ball.el && ball.el.parentNode) {
+      ball.el.parentNode.removeChild(ball.el);
+    }
+    if (ball.shadowEl && ball.shadowEl.parentNode) {
+      ball.shadowEl.parentNode.removeChild(ball.shadowEl);
+    }
+  }
+
+  // ボール本体
+  const ballEl = document.createElement("div");
+  ballEl.className = "ball ball-ground"; // 小さいサイズで表示
+  gameArea.appendChild(ballEl);
+
+  // 影（上空ではないので非表示のまま）
+  const shadowEl = document.createElement("div");
+  shadowEl.className = "ball-shadow";
+  shadowEl.style.display = "none";
+  gameArea.appendChild(shadowEl);
+
+  ball = {
+    x,
+    y,
+    vx: 0,
+    vy: 0,
+    radiusAir: ballAirRadius,
+    radiusGround: ballGroundRadius,
+    el: ballEl,
+    shadowEl: shadowEl,
+    startTime: 0,
+    mode: "ground",
+  };
+
+  updateBallElement();
+}
+
+
+
+
 // ゴルファータップ → ショット開始
 function handleGolferTap() {
   if (gamePhase !== Phase.PLACING) {
@@ -241,18 +373,13 @@ function handleGolferTap() {
     return;
   }
 
-  // ボールがすでにあれば無視
-  if (ball) return;
-
   startShot();
 }
 
+
+
 // ショット開始
 function startShot() {
-  // 一時的なログ
-  
-  console.log("seShot =", seShot);
-  console.log("seShot readyState =", seShot && seShot.readyState);
 
   // ★ショット音
   if (seShot) {
@@ -278,10 +405,6 @@ function startShot() {
   const startX = golferRect.left - rect.left + golferRect.width / 2;
   const startY = golferRect.bottom - rect.top; // ゴルファー画像の下端付近
 
-  const ballEl = document.createElement("div");
-  ballEl.className = "ball ball-ground";
-  gameArea.appendChild(ballEl);
-
   // ボール初期状態
   const ballAirRadius = parseFloat(
     getComputedStyle(document.documentElement).getPropertyValue(
@@ -301,24 +424,11 @@ function startShot() {
     groundScale
   );
 
+  // ★既存のボールを使用してパラメータだけ更新
+ball.startTime = performance.now();
+ball.mode = "air";
 
-  // ★追加：影用の要素を作成
-  const shadowEl = document.createElement("div");
-  shadowEl.className = "ball-shadow";
-  gameArea.appendChild(shadowEl);
 
-  ball = {
-    x: startX,
-    y: startY,
-    vx: 0,
-    vy: 0,
-    radiusAir: ballAirRadius,
-    radiusGround: ballGroundRadius,
-    el: ballEl,
-    shadowEl: shadowEl,
-    startTime: performance.now(),
-    mode: "air", // "air" or "ground"
-  };
    // ★打ち上がり演出：
   // 1) 開始直後（50ms後）に「小 → 大」へ 2秒かけて拡大
   setTimeout(() => {
@@ -536,10 +646,23 @@ function endShot(hitHole) {
     updateBallElement();
   }
 
-  // 軽く演出（穴を少し光らせる）
-  if (hitHole && hitHole.element) {
-    hitHole.element.style.boxShadow = "0 0 14px rgba(255,255,0,0.9)";
-  }
+  // 軽く演出（穴を少し光らせ点滅）
+if (hitHole && hitHole.element) {
+  let visible = false;
+  const holeEl = hitHole.element;
+
+  // クラスが残ると次のゲームに影響するので初期化
+  holeEl.style.boxShadow = "none";
+
+  // 0.5秒ごとにオン/オフを切り替え
+  hitHole.blinkInterval = setInterval(() => {
+    visible = !visible;
+    holeEl.style.boxShadow = visible
+      ? "0 0 20px rgba(255, 0, 0, 1)"
+      : "none";
+  }, 500);
+}
+
    if (resetButton) {
     resetButton.style.display = "block";
   }
@@ -575,7 +698,9 @@ function resetGame() {
   layoutGrid();
 
   // ゴルファー位置ランダム
+  randomizeGolferImage();
   randomizeGolferPosition();
+  createInitialBall();
 
     // ゴルフ場をリセットしたらボタンは消す
   if (resetButton) {

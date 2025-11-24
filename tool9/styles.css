@@ -1,5 +1,5 @@
 :root {
-  --hole-radius: 24px;
+  --hole-radius: 20px;
   --hole-border-width: 3px;
   --ball-air-radius: 24px;
   --ball-ground-radius: 7px;
@@ -36,18 +36,19 @@ body {
 
 .reset-button {
   position: absolute;      /* ★上部固定にする */
-  top: 8px;
-  right: 8px;
+  transform: translate(-50%, -50%); /* ★中央配置 */
+  top: 85%;
+  left: 50%;
   z-index: 20;
 
   border: none;
   background: #ffcc33;
+  opacity: 0.7;
   color: #333;
   font-weight: 600;
-  font-size: 13px;
-  padding: 6px 12px;
+  font-size: 20px;
+  padding: 12px 20px;
   border-radius: 999px;
-  cursor: pointer;
 
   display: none;           /* ★最初は非表示。ボールが止まったらJSで表示 */
 }
@@ -126,7 +127,7 @@ body {
   position: absolute;
   border-radius: 50%;
   background: #ffffff;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
+  /* box-shadow: 0 0 6px rgba(255, 255, 255, 0.9); */
   /* ★基準サイズは「上空ボール」のサイズに固定 */
   width: calc(var(--ball-air-radius) * 2);
   height: calc(var(--ball-air-radius) * 2);
