@@ -193,6 +193,7 @@
     let state = {
     total: 0,
     winner: -1,
+    enableReshuffle: true
     };
 
     let currentSelection = null; // { index, btn, imgEl }
@@ -227,9 +228,12 @@
         document.getElementById('hint').style.display='none';
         $nums.hidden = true;
 
-        const total = chosen + 1;
+        const direct = chosen >= 4;
+        const total  = direct ? chosen : (chosen + 1);
+
         state.total = total;
         state.winner = Math.floor(Math.random() * total);
+        state.enableReshuffle = !direct;   // 4以上ならリシャッフルしない
 
         $grid.innerHTML = '';
         for(let i=0;i<total;i++){
@@ -341,11 +345,14 @@
         $modal.removeAttribute('open');
         currentSelection = null;
 
-        const unopened = Array.from(document.querySelectorAll('.cell'))
-        .filter(c => c.getAttribute('aria-disabled') !== 'true');
+        // リシャッフル判定
+        if (state.enableReshuffle) {
+            const unopened = Array.from(document.querySelectorAll('.cell'))
+            .filter(c => c.getAttribute('aria-disabled') !== 'true');
 
-        if (unopened.length === 1) {
-            showReshuffleThenReset();
+            if (unopened.length === 1) {
+                showReshuffleThenReset();
+        }
         }
     }
 
