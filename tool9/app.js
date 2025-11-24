@@ -672,6 +672,7 @@ if (hitHole && hitHole.element) {
 
 // ゲームリセット
 function resetGame() {
+    resetButton.style.display = "none";
   // アニメーション停止
   if (animationId !== null) {
     cancelAnimationFrame(animationId);
@@ -702,8 +703,4 @@ function resetGame() {
   randomizeGolferPosition();
   createInitialBall();
 
-    // ゴルフ場をリセットしたらボタンは消す
-  if (resetButton) {
-    resetButton.style.display = "none";
-  }
 }
