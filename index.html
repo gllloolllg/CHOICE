@@ -1,28 +1,30 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-    <meta charset="UTF-8">
-    <link rel="manifest" href="/manifest.webmanifest">
-    <meta name="theme-color" content="#000">
-    <link rel="icon" type="image/png" href="./icons/favicon.png" sizes="32x32">
-    <link rel="apple-touch-icon" sizes="152x152" href="./icons/apple-touch-icon-152.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="./icons/apple-touch-icon-167.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon-180.png">
-    <!-- ホーム画面追加時にWeb Appモードで開く -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta charset="UTF-8">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#000">
+  <link rel="icon" type="image/png" href="./icons/favicon.png" sizes="32x32">
+  <link rel="apple-touch-icon" sizes="152x152" href="./icons/apple-touch-icon-152.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="./icons/apple-touch-icon-167.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon-180.png">
+  <!-- ホーム画面追加時にWeb Appモードで開く -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
 
-    <!-- ステータスバー（時計・バッテリー部分）の色 -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- ステータスバー（時計・バッテリー部分）の色 -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&display=swap" rel="stylesheet">
 
   <title>スタP</title>
   <style>
-     html, body {
+    html,
+    body {
       margin: 0;
       padding: 0;
       width: 100%;
@@ -31,33 +33,37 @@
       font-family: sans-serif;
       background-color: rgb(0, 0, 0);
     }
+
     body {
       padding-top: env(safe-area-inset-top);
       padding-bottom: env(safe-area-inset-bottom);
       background-color: black;
     }
-    header{
+
+    header {
       display: flex;
       height: 32px;
       justify-content: space-between;
       align-items: center;
       padding: 4px;
     }
+
     #numDis {
       font-family: "Darumadrop One";
       height: 32px;
       font-size: 20px;
       color: #696969;
     }
+
     #reloadBtn {
       height: 32px;
       font-family: "Darumadrop One", sans-serif;
       font-size: 20px;
-      color:#000000;
+      color: #000000;
       background: #303030;
-      border:none;
-      border-radius:8px;
-      padding:0 10px 5px; 
+      border: none;
+      border-radius: 8px;
+      padding: 0 10px 5px;
       z-index: 10;
       touch-action: manipulation;
     }
@@ -71,38 +77,163 @@
       border: none;
     }
 
+    /* Modal Styles */
+    #modalOverlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #modalContent {
+      background: #222;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 90%;
+      width: 320px;
+      text-align: center;
+      color: white;
+      font-family: "Darumadrop One", sans-serif;
+    }
+
+    .num-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 15px;
+    }
+
+    .num-btn {
+      background: #444;
+      border: none;
+      color: white;
+      padding: 10px 0;
+      border-radius: 8px;
+      font-size: 30px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .num-btn:active {
+      background: #666;
+    }
+
+    .num-btn.active {
+      background: #888;
+      border: 2px solid #fff;
+    }
+
+    .all-btn {
+      grid-column: span 5;
+      background: #1976d2;
+    }
   </style>
 </head>
+
 <body>
   <header>
-      <div id="numDis"></div>
-      <button id="reloadBtn">CHANGE</button>
+    <div id="numDis"></div>
+    <button id="reloadBtn">CHANGE</button>
   </header>
-    <iframe id="tool-frame" title="ツール表示領域"></iframe>
+  <iframe id="tool-frame" title="ツール表示領域"></iframe>
 
-<script>
+  <!-- Modal -->
+  <div id="modalOverlay">
+    <div id="modalContent">
+      <div class="num-grid" id="numGrid">
+        <!-- JS will populate this -->
+      </div>
+    </div>
+  </div>
+
+  <script>
     const tools = [
-      { file: '01roulette.html', title: "2-12"},
-      { file: '02finger.html', title: "2+"},
-      { file: '03makimono.html', title: "2+"},
-      { file: '04treasure.html', title: "2-12"},
-      { file: '05hagetaka.html', title: "3-8"},
-      { file: '06race.html', title: "2-6"},
-      { file: '07stopwatch.html', title: "2-10"},
-      { file: '08bingo.html', title: "2-8"},
-      { file: '09golf.html', title: "2-6"},
+      { file: '01roulette.html', min: 2, max: 12 },
+      { file: '02finger.html', min: 2, max: 12 },
+      { file: '03makimono.html', min: 2, max: 12 },
+      { file: '04treasure.html', min: 2, max: 12 },
+      { file: '05hagetaka.html', min: 3, max: 8 },
+      { file: '06race.html', min: 2, max: 6 },
+      { file: '07stopwatch.html', min: 2, max: 10 },
+      { file: '08bingo.html', min: 2, max: 8 },
+      { file: '09golf.html', min: 2, max: 6 },
     ];
 
     const numDis = document.getElementById('numDis');
     const frame = document.getElementById('tool-frame');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const numGrid = document.getElementById('numGrid');
+
+    let selectedPlayers = null; // null means 'ALL'
+
+    // 範囲を文字列に変換 (例: min=2, max=12 -> "2-12", max=99 -> "2+")
+    function formatRange(min, max) {
+      if (max >= 99) {
+        return `${min}+`;
+      }
+      return `${min}-${max}`;
+    }
+
+    // Modal生成
+    function initModal() {
+      for (let i = 2; i <= 12; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'num-btn';
+        btn.textContent = i;
+        btn.onclick = () => selectPlayers(i);
+        numGrid.appendChild(btn);
+      }
+    }
+
+    function selectPlayers(num) {
+      selectedPlayers = num;
+      modalOverlay.style.display = 'none';
+
+      // Highlight logic (redraw or toggle class) - simple redraw for now
+      // update header display to show selection? No, user said "Current Format" for game title.
+      // User said: "Tap to open window, select number, close window."
+      // "Next draw (loadRandomTool()) will select from suitable games."
+
+      // Maybe update UI to show filter status? 
+      // User request: "最少人数と最大人数を入力しておき、それを現在の形式で表示する" -> This referred to the `numDis` showing the game's range.
+
+      // Optional: Trigger load immediately? "Next lottery... will randomly select". 
+      // I'll wait for the button press as per instruction "Next lottery".
+      loadRandomTool()
+    }
+
+    // Open Modal
+    numDis.addEventListener('click', () => {
+      modalOverlay.style.display = 'flex';
+    });
+
 
     // ランダムにツールを選んでiframeに読み込む関数
     function loadRandomTool() {
-        const i = Math.floor(Math.random() * tools.length);
-        numDis.textContent = tools[i].title;
-        frame.src = tools[i].file;
+      let candidates = tools;
+      if (selectedPlayers !== null) {
+        candidates = tools.filter(t => selectedPlayers >= t.min && selectedPlayers <= t.max);
+      }
+
+      if (candidates.length === 0) {
+        alert('対象のゲームがありません');
+        return;
+      }
+
+      const i = Math.floor(Math.random() * candidates.length);
+      const tool = candidates[i];
+
+      numDis.textContent = formatRange(tool.min, tool.max);
+      frame.src = tool.file;
     }
 
+    initModal();
     // 初回ロード時
     loadRandomTool();
 
@@ -110,7 +241,8 @@
     document.getElementById('reloadBtn').addEventListener('click', loadRandomTool);
 
     //動作テスト
-    // document.getElementById('tool-frame').src='08bingo.html';
-</script>
+    // document.getElementById('tool-frame').src='09golf.html';
+  </script>
 </body>
+
 </html>
