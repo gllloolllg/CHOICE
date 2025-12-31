@@ -78,7 +78,8 @@
     }
 
     /* Modal Styles */
-    #modalOverlay {
+    #modalOverlay,
+    #gameModalOverlay {
       display: none;
       position: fixed;
       top: 0;
@@ -91,7 +92,8 @@
       align-items: center;
     }
 
-    #modalContent {
+    #modalContent,
+    #gameModalContent {
       background: #222;
       padding: 20px;
       border-radius: 12px;
@@ -102,10 +104,22 @@
       font-family: "Darumadrop One", sans-serif;
     }
 
+    #gameModalContent {
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
     .num-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 14px;
+      margin-top: 15px;
+    }
+
+    .game-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
       margin-top: 15px;
     }
 
@@ -120,7 +134,20 @@
       font-family: inherit;
     }
 
-    .num-btn:active {
+    .game-btn {
+      background: #444;
+      border: none;
+      color: white;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 20px;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+    }
+
+    .num-btn:active,
+    .game-btn:active {
       background: #666;
     }
 
@@ -152,24 +179,38 @@
     </div>
   </div>
 
+  <!-- Game Selection Modal -->
+  <div id="gameModalOverlay">
+    <div id="gameModalContent">
+      <div class="game-list" id="gameList">
+        <!-- JS will populate this -->
+      </div>
+    </div>
+  </div>
+
   <script>
     const tools = [
-      { file: '01roulette.html', min: 2, max: 12 },
-      { file: '02finger.html', min: 2, max: 12 },
-      { file: '03makimono.html', min: 2, max: 12 },
-      { file: '04treasure.html', min: 2, max: 12 },
-      { file: '05hagetaka.html', min: 3, max: 8 },
-      { file: '06race.html', min: 2, max: 6 },
-      { file: '07stopwatch.html', min: 2, max: 10 },
-      { file: '08bingo.html', min: 2, max: 8 },
-      { file: '09golf.html', min: 2, max: 6 },
-      { file: '10drop.html', min: 2, max: 6 },
+      { name: 'ルーレット', file: '01roulette.html', min: 2, max: 12 },
+      { name: 'フィンガー', file: '02finger.html', min: 2, max: 12 },
+      { name: 'ヒデン', file: '03makimono.html', min: 2, max: 12 },
+      { name: 'トレジャー', file: '04treasure.html', min: 2, max: 12 },
+      { name: 'ハゲタカ', file: '05hagetaka.html', min: 3, max: 8 },
+      { name: 'レース', file: '06race.html', min: 2, max: 6 },
+      { name: 'ストップウォッチ', file: '07stopwatch.html', min: 2, max: 10 },
+      { name: 'ビンゴ', file: '08bingo.html', min: 2, max: 8 },
+      { name: 'ゴルフ', file: '09golf.html', min: 2, max: 6 },
+      { name: 'ドロップ', file: '10drop.html', min: 2, max: 6 },
     ];
 
     const numDis = document.getElementById('numDis');
     const frame = document.getElementById('tool-frame');
     const modalOverlay = document.getElementById('modalOverlay');
     const numGrid = document.getElementById('numGrid');
+
+    // Game Modal Elements
+    const gameModalOverlay = document.getElementById('gameModalOverlay');
+    const gameList = document.getElementById('gameList');
+    const reloadBtn = document.getElementById('reloadBtn');
 
     let selectedPlayers = null; // null means 'ALL'
 
@@ -192,21 +233,34 @@
       }
     }
 
+    // Game List Modal生成
+    function initGameModal() {
+      tools.forEach(tool => {
+        const btn = document.createElement('button');
+        btn.className = 'game-btn';
+        btn.textContent = tool.name;
+        btn.onclick = () => selectGame(tool);
+        gameList.appendChild(btn);
+      });
+
+      // Close on overlay click
+      gameModalOverlay.addEventListener('click', (e) => {
+        if (e.target === gameModalOverlay) {
+          gameModalOverlay.style.display = 'none';
+        }
+      });
+    }
+
     function selectPlayers(num) {
       selectedPlayers = num;
       modalOverlay.style.display = 'none';
+      loadRandomTool();
+    }
 
-      // Highlight logic (redraw or toggle class) - simple redraw for now
-      // update header display to show selection? No, user said "Current Format" for game title.
-      // User said: "Tap to open window, select number, close window."
-      // "Next draw (loadRandomTool()) will select from suitable games."
-
-      // Maybe update UI to show filter status? 
-      // User request: "最少人数と最大人数を入力しておき、それを現在の形式で表示する" -> This referred to the `numDis` showing the game's range.
-
-      // Optional: Trigger load immediately? "Next lottery... will randomly select". 
-      // I'll wait for the button press as per instruction "Next lottery".
-      loadRandomTool()
+    function selectGame(tool) {
+      gameModalOverlay.style.display = 'none';
+      numDis.textContent = formatRange(tool.min, tool.max);
+      frame.src = tool.file;
     }
 
     // Open Modal
@@ -235,11 +289,57 @@
     }
 
     initModal();
+    initGameModal();
     // 初回ロード時
     loadRandomTool();
 
-    // ボタンクリックで再抽選
-    document.getElementById('reloadBtn').addEventListener('click', loadRandomTool);
+    // ボタン長押し判定 logic
+    let pressTimer;
+    let isLongPress = false;
+
+    // Touch events (High priority, prevent mouse emulation)
+    reloadBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault(); // Prevent mouse events and click
+      startPress();
+    }, { passive: false });
+
+    reloadBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      endPress();
+    });
+
+    // Mouse events
+    reloadBtn.addEventListener('mousedown', (e) => {
+      startPress();
+    });
+
+    reloadBtn.addEventListener('mouseup', (e) => {
+      endPress();
+    });
+
+    reloadBtn.addEventListener('mouseleave', cancelPress);
+
+    function startPress() {
+      isLongPress = false;
+      pressTimer = setTimeout(() => {
+        isLongPress = true;
+        // Open Game Selection Modal
+        gameModalOverlay.style.display = 'flex';
+      }, 600); // 600ms threshold
+    }
+
+    function endPress() {
+      clearTimeout(pressTimer);
+      if (!isLongPress) {
+        // Normal click behavior
+        loadRandomTool();
+      }
+      // If long press, do nothing (modal is already open)
+    }
+
+    function cancelPress() {
+      clearTimeout(pressTimer);
+    }
 
     //動作テスト
     // document.getElementById('tool-frame').src='10drop.html';
