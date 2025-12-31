@@ -1,0 +1,257 @@
+:root {
+    --bg-color: #000;
+    --stage-bg: #707070;
+    --stage-border: #ebebeb;
+    --text-color: #fff;
+    --popup-bg: rgba(255, 255, 255, 0.95);
+    --safe-area-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: calc(20px + var(--safe-area-bottom));
+}
+
+/* ステージ */
+#stage {
+    position: relative;
+    width: 90vw;
+    height: 90vw;
+    /* 正円を維持 */
+    max-width: 540px;
+    max-height: 540px;
+    background-color: var(--stage-bg);
+    border: 12px solid var(--stage-border);
+    border-radius: 50%;
+    margin-top: 10vh;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+}
+
+/* プレイヤー (JavaScriptで制御) */
+.player {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    transition: width 0.3s, height 0.3s, opacity 0.3s;
+    /* width/heightはJSで微調整する可能性あり (親のサイズ依存のため) */
+}
+
+/* コントロールエリア */
+#controls {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+    pointer-events: none;
+    margin-top: 60px;
+    /* ボタン以外はクリック通過 */
+}
+
+.control-column {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    pointer-events: auto;
+}
+
+.entry-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    background-color: #333;
+    /* デフォルト */
+    color: white;
+    font-size: 36px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.1s, filter 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.entry-btn:active {
+    transform: scale(0.95);
+}
+
+.entry-btn.active {
+    border-color: #fff;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+}
+
+/* BATTLEボタン */
+#battle-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+    padding: 15px 40px;
+    font-size: 30px;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(135deg, #ff416c, #ff4b2b);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(255, 75, 43, 0.3);
+    animation: pulse 1.5s infinite;
+}
+
+#battle-btn:active {
+    transform: translate(-50%, -50%) scale(0.95);
+}
+
+@keyframes pulse {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 75, 43, 0.4);
+    }
+
+    70% {
+        transform: translate(-50%, -50%) scale(1.05);
+        box-shadow: 0 0 0 15px rgba(255, 75, 43, 0);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 75, 43, 0);
+    }
+}
+
+/* FIREボタン */
+#fire-btn {
+    position: absolute;
+    aspect-ratio: 1/1;
+    bottom: 25%;
+    /* ステージの下あたり (コントロールエリアの上) */
+    left: 50%;
+    transform: translate(-50%, 0);
+    z-index: 100;
+    padding: 10px 30px;
+    font-size: 42px;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(135deg, #FF9800, #F44336);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
+    transition: transform 0.1s, opacity 0.3s, filter 0.3s;
+}
+
+#fire-btn:active {
+    transform: translate(-50%, -50%) scale(0.95);
+}
+
+#fire-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(100%);
+}
+
+/* NPC (拳) */
+.npc {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    transform-origin: center center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 60px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* ポップアップ */
+.emoji-popup {
+    position: absolute;
+    background-color: var(--popup-bg);
+    border-radius: 12px;
+    padding: 4px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    z-index: 50;
+    backdrop-filter: blur(5px);
+}
+
+.emoji-popup::after {
+    /* content: ''; */
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    /* 吹き出しの三角、JSでクラスによって向きを変える想定 */
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+}
+
+.emoji-option {
+    font-size: 24px;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 5px;
+    text-align: center;
+    transition: background-color 0.2s;
+}
+
+.emoji-option:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* 勝利メッセージ用 */
+#winner-display {
+    position: absolute;
+    top: 17%;
+    width: 100%;
+    text-align: center;
+    font-size: 64px;
+    font-weight: bold;
+    color: #FFD700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    z-index: 200;
+    pointer-events: none;
+}
